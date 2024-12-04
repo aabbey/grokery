@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to My App</title>
+    <!-- Add modern fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: #2d3436;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tagline {
+            color: #636e72;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        nav {
+            margin-top: 2rem;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #fff;
+            background-color: #0984e3;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background-color: #0061a8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(9, 132, 227, 0.3);
+        }
+
+        .hero-section {
+            margin-top: 3rem;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Groc</h1>
+        <p class="tagline">Transform your weekly meal planning and grocery shopping experience. Create delicious meal plans and get organized shopping lists instantly.</p>
+    </header>
+
+    <nav>
+        <ul class="nav-links">
+            <li><a href="/app/">Start Planning</a></li>
+            <li><a href="/recipes/">Browse Recipes</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero-section">
+        <div class="features">
+            <div class="feature-card">
+                <h3>Smart Meal Planning</h3>
+                <p>Plan your weekly meals with our intuitive calendar interface</p>
+            </div>
+            <div class="feature-card">
+                <h3>Automatic Shopping Lists</h3>
+                <p>Get organized grocery lists based on your selected recipes</p>
+            </div>
+            <div class="feature-card">
+                <h3>Recipe Collection</h3>
+                <p>Browse and save your favorite recipes for quick meal planning</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

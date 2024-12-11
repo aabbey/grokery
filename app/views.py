@@ -6,3 +6,9 @@ def hello(request):
 
 def landing(request):
     return render(request, "landing.html")
+
+def start(request):
+    return render(request, "start.html")
+
+def recipe_page(request):
+    return render(request, "recipe_page.html")

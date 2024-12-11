@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Plan Preferences</title>
+    <!-- Include the CSS file using the static tag -->
+    <link rel="stylesheet" href="{% static 'app/css/style.css' %}">
+</head>
+<body class="centered-layout">
+    <div class="container">
+        <h1>Start Your Meal Plan</h1>
+        <p class="subtitle">What do you prefer?</p>
+        <div class="preferences">
+            <div class="preference">
+                <button class="plus-btn" data-target="healthy-lines">+</button>
+                <div class="preference-content">
+                    <span class="label">Healthy</span>
+                    <div class="lines" id="healthy-lines">
+                        <span class="line"></span>
+                        <span class="line"></span>
+                        <span class="line"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="preference">
+                <button class="plus-btn" data-target="cheap-lines">+</button>
+                <div class="preference-content">
+                    <span class="label">Cheap</span>
+                    <div class="lines" id="cheap-lines">
+                        <span class="line"></span>
+                        <span class="line"></span>
+                        <span class="line"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="preference">
+                <button class="plus-btn" data-target="fast-lines">+</button>
+                <div class="preference-content">
+                    <span class="label">Fast</span>
+                    <div class="lines" id="fast-lines">
+                        <span class="line"></span>
+                        <span class="line"></span>
+                        <span class="line"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="preference">
+                <button class="plus-btn" data-target="simple-lines">+</button>
+                <div class="preference-content">
+                    <span class="label">Simple</span>
+                    <div class="lines" id="simple-lines">
+                        <span class="line"></span>
+                        <span class="line"></span>
+                        <span class="line"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <button class="icon-btn">
+                <img src="{% static 'app/images/preferences_icon.png' %}" alt="Preferences" class="preferences-icon">
+            </button>
+            <span class="settings-text">All Preferences</span>
+        </div>
+        <div class="buttons">
+            <a href="{% url 'recipe_page' %}" class="build-btn">Build My Recipes!</a>
+        </div>
+    </div>
+
+    <!-- Include the JS file using the static tag -->
+    <script src="{% static 'app/js/main.js' %}"></script>
+</body>
+</html>

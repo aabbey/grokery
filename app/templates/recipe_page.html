@@ -1,0 +1,142 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grocery & Recipes</title>
+<link rel="stylesheet" href="{% static 'app/css/style.css' %}">
+<style>
+  /* Main Content Layout */
+  main {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+  }
+  
+  header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  
+  header .back-arrow, header .settings {
+    color: white;
+    text-decoration: none;
+    font-size: 24px;
+  }
+  
+  header h1 {
+    color: white;
+    margin: 0;
+    flex: 1;
+    text-align: center;
+  }
+  
+  .container {
+    width: 95%;
+    max-width: 1200px;
+    padding: 20px;
+  }
+  
+  .grocery-list {
+    flex: 1;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .grocery-list:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .recipes {
+    flex: 2;
+    gap: 15px;
+  }
+  
+  .recipe-item {
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    border: none;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .recipe-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .recipe-item img {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  .recipe-info {
+    flex: 1;
+    margin-left: 15px;
+  }
+  
+  .recipe-info h3 {
+    color: white;
+    font-size: 18px;
+    margin: 0;
+  }
+  
+  .recipe-options {
+    color: white;
+  }
+</style>
+</head>
+<body class="centered-layout">
+  <div class="container">
+    <header>
+      <a href="/" class="back-arrow">&#8592;</a>
+      <h1>Page</h1>
+      <a href="#" class="settings">&#9881;</a>
+    </header>
+
+    <main>
+      <a href="#" class="grocery-list">
+        <h2>Grocery List</h2>
+        <ul>
+          <li>Item 1</li>
+          <li>Item 2</li>
+          <li>Item 3</li>
+          <li>Item 4</li>
+        </ul>
+      </a>
+      
+      <section class="recipes">
+        <a href="#" class="recipe-item">
+          <img src="#" alt="Recipe picture placeholder" />
+          <div class="recipe-info">
+            <h3>Recipe Name</h3>
+          </div>
+          <div class="recipe-options">⋮</div>
+        </a>
+
+        <a href="#" class="recipe-item">
+          <img src="#" alt="Recipe picture placeholder" />
+          <div class="recipe-info">
+            <h3>Recipe Name</h3>
+          </div>
+          <div class="recipe-options">⋮</div>
+        </a>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

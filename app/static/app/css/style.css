@@ -1,198 +1,387 @@
-body {
-    margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-    color: #fff;
+:root {
+    /* Primary colors */
+    --primary: #2c3e50;
+    --primary-light: #34495e;
+    
+    /* Multiple accent colors */
+    --accent: #3498db;  /* Keep blue as main accent */
+    --healthy: #2ecc71;  /* Green for healthy */
+    --cheap: #f1c40f;   /* Yellow for cheap */
+    --fast: #9b59b6;    /* Purple for fast */
+    --simple: #e74c3c;  /* Red for simple */
+    
+    /* Text colors */
+    --text: #2c3e50;
+    --text-light: #7f8c8d;
+    
+    /* Background colors */
+    --background: #f5f6fa;
+    --surface: #ffffff;
+    
+    /* Shadows */
+    --shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-large: 0 4px 6px rgba(0,0,0,0.1);
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #3498db, #2980b9);
+    --gradient-secondary: linear-gradient(135deg, #e74c3c, #c0392b);
+    --gradient-tertiary: linear-gradient(135deg, #2ecc71, #27ae60);
 }
 
-/* New class for centered layouts (like the start page) */
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    padding-top: 4rem;
+}
+
+/* Subtle gradient animation in the background */
+.gradient-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(120deg, #f6f7fb 0%, #e9ecf3 100%);
+    z-index: -1;
+    animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% { opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
 .centered-layout {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    text-align: center;
-}
-
-@keyframes gradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    padding: 20px;
 }
 
 .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
+    background: var(--surface);
+    border-radius: 16px;
     padding: 2.5rem;
-    border-radius: 20px;
     width: 90%;
     max-width: 600px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-large);
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 1;
+    margin-top: 1rem;
 }
 
 h1 {
-    margin: 0 0 15px;
-    font-size: 2.2rem;
+    color: var(--primary);
+    margin: 0 0 1rem;
+    font-size: 2rem;
     font-weight: 700;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: -0.5px;
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    margin-bottom: 30px;
-    opacity: 0.9;
+    color: var(--text-light);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
 }
 
 .preference {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
 }
 
-.preference-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.preference:hover {
+    background-color: rgba(0,0,0,0.02);
 }
 
 .plus-btn {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--accent);
     color: white;
     border: none;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .plus-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
 }
 
 .label {
-    font-size: 1.1rem;
-    text-align: left;
+    font-size: 1rem;
+    color: var(--text);
     font-weight: 500;
 }
 
 .lines {
     display: flex;
-    gap: 5px;
+    gap: 4px;
     height: 4px;
 }
 
 .line {
     flex: 1;
     height: 100%;
-    background: rgba(255, 255, 255, 0.2);
+    background: #e1e5ee;
     border-radius: 2px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .line.active {
-    background: #4ded30;
-    box-shadow: 0 0 10px rgba(77, 237, 48, 0.5);
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+    /* Lighter blue and added glow effect */
+    background: #5dade2;
 }
 
 .settings-section {
+    margin: 2rem 0;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 30px 0;
-    opacity: 0.8;
-}
-
-.preferences-icon {
-    width: 24px;
-    height: 24px;
-    transition: transform 0.3s ease;
-}
-
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-    display: flex;
-    align-items: center;
     justify-content: center;
 }
 
-.icon-btn:hover .preferences-icon {
-    transform: rotate(45deg);
+.settings-section .icon-btn {
+    background: var(--surface);
+    color: var(--text);
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1.5px solid var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-section .icon-btn:hover {
+    background: var(--text);
+    color: var(--surface);
 }
 
 .settings-text {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .build-btn {
     display: inline-block;
     text-decoration: none;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--accent);
     color: white;
-    padding: 12px 25px;
-    border-radius: 25px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 
 .build-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
 }
 
+/* Recipe page specific styles */
 .recipe {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 1rem;
 }
 
 .recipe-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: inherit;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+    transition: all 0.2s ease;
+}
+
+.recipe-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--accent);
 }
 
 .recipe-item img {
     width: 80px;
     height: 80px;
-    border-radius: 10px;
-}
-
-.recipe-item p {
-    margin: 0;
-    flex: 1;
-    text-align: left;
-    padding-left: 10px;
+    border-radius: 8px;
+    object-fit: cover;
 }
 
 .grocery-list {
-    width: 100%;
-    text-align: left;
-    margin-bottom: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px;
-    border-radius: 10px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.grocery-list h2 {
+    color: var(--primary);
+    margin-top: 0;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.grocery-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.grocery-list li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    color: var(--text);
+}
+
+.grocery-list li:last-child {
+    border-bottom: none;
+}
+
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem 2rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.top-bar h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.top-bar-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.top-bar .icon-btn {
+    background: none;
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.top-bar .icon-btn:hover {
+    background: rgba(0,0,0,0.05);
+    color: var(--accent);
+}
+
+/* Update the header styles in recipe_page.html */
+header {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+header .back-arrow, 
+header .settings {
+    color: var(--text);
     text-decoration: none;
-    color: inherit;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+header .back-arrow:hover, 
+header .settings:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+header h1 {
+    color: var(--text);
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+
+.split-layout {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.grocery-list-sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    border-right: 1px solid #eee;
+    padding-right: 2rem;
+}
+
+.recipes-section {
+    flex: 2;
+    min-width: 0;
+}
+
+.grocery-list {
+    position: sticky;
+    top: 2rem;
+}
+
+.grocery-list h2 {
+    margin-bottom: 1rem;
+}
+
+.grocery-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.grocery-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
 }
   

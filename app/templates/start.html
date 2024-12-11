@@ -1,14 +1,10 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Plan Preferences</title>
-    <!-- Include the CSS file using the static tag -->
-    <link rel="stylesheet" href="{% static 'app/css/style.css' %}">
-</head>
-<body class="centered-layout">
+
+{% block title %}Start Your Meal Plan{% endblock %}
+
+{% block content %}
+<div class="centered-layout">
     <div class="container">
         <h1>Start Your Meal Plan</h1>
         <p class="subtitle">What do you prefer?</p>
@@ -60,16 +56,19 @@
         </div>
         <div class="settings-section">
             <button class="icon-btn">
-                <img src="{% static 'app/images/preferences_icon.png' %}" alt="Preferences" class="preferences-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20v-8M12 8V4M6 20v-4M6 12V4M18 20V12M18 8V4"/>
+                </svg>
+                <span class="settings-text">Additional Preferences</span>
             </button>
-            <span class="settings-text">All Preferences</span>
         </div>
         <div class="buttons">
             <a href="{% url 'recipe_page' %}" class="build-btn">Build My Recipes!</a>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <!-- Include the JS file using the static tag -->
-    <script src="{% static 'app/js/main.js' %}"></script>
-</body>
-</html>
+{% block extra_js %}
+<script src="{% static 'app/js/main.js' %}"></script>
+{% endblock %}

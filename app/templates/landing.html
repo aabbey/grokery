@@ -1,82 +1,19 @@
-<!DOCTYPE html>
-<html dir="ltr">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    
-    <!-- Basic favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png"/>
-    
-    <title>Your App Name</title>
-    <meta name="description" content="Your app description here"/>
+{% extends 'base.html' %}
+{% load static %}
 
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.5;
-            color: #353740;
-            background-color: #ffffff;
-        }
+{% block title %}Welcome to Meal Planner{% endblock %}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .hero {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: linear-gradient(to bottom, #f7f7f8, #ffffff);
-        }
-
-        .hero h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            color: #202123;
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            color: #6e6e80;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .cta-button {
-            display: inline-block;
-            background-color: #10a37f;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            text-decoration: none;
-            margin-top: 2rem;
-            font-weight: 500;
-        }
-
-        .cta-button:hover {
-            background-color: #0e906f;
-        }
-    </style>
-</head>
-<body>
-    <div class="hero">
-        <div class="container">
-            <h1>Welcome to Your App</h1>
-            <p>This is a sample landing page with a clean, modern design. Customize it with your own content and branding.</p>
-            <a href="#" class="cta-button">Get Started</a>
+{% block content %}
+<div class="centered-layout">
+    <div class="container landing-container">
+        <h1>Welcome to Meal Planner</h1>
+        <p class="subtitle">Plan your meals, create shopping lists, and cook with confidence.</p>
+        
+        <div class="cta-buttons">
+            <a href="{% url 'account_signup' %}" class="primary-btn">Create Account</a>
+            <a href="{% url 'account_login' %}" class="secondary-btn">Sign In</a>
+            <a href="{% url 'guest_login' %}" class="guest-btn">Continue as Guest</a>
         </div>
     </div>
-
-    <div class="container">
-        <h2>Features</h2>
-        <p>Add your app's features and benefits here.</p>
-    </div>
-
-    <script>
-        // Your custom JavaScript
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}

@@ -20,7 +20,9 @@ from django.urls import path, include
 from app import views
 
 urlpatterns = [
-    path("", views.start, name="start"),
+    path("", views.landing, name="landing"),
+    path("start/", views.start, name="start"),
     path("app/", include("app.urls")),
     path("admin/", admin.site.urls),
+    path("accounts/", include("allauth.urls")),
 ]

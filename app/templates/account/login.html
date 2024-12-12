@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="centered-layout">
+    <div class="container auth-container">
+        <h1>Welcome Back</h1>
+        <div class="auth-options">
+            <!-- Email Sign In Form -->
+            <form class="login-form" method="POST" action="{% url 'account_login' %}">
+                {% csrf_token %}
+                {% if form.errors %}
+                <div class="form-errors">
+                    {% for error in form.non_field_errors %}
+                        <p class="error-message">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <input type="email" name="login" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="primary-btn">Sign In</button>
+            </form>
+
+            <!-- Sign Up Link -->
+            <p class="auth-links">
+                Don't have an account? <a href="{% url 'account_signup' %}">Sign Up</a>
+            </p>
+
+            <!-- Guest Option -->
+            <div class="guest-option">
+                <a href="{% url 'guest_login' %}" class="guest-btn">Continue as Guest</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

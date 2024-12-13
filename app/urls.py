@@ -7,4 +7,7 @@ urlpatterns = [
     path("landing/", views.landing, name="landing"),
     path("recipe-page/", views.recipe_page, name="recipe_page"),
     path("guest-login/", views.guest_login, name="guest_login"),
+    path("grocery-list/", views.get_grocery_list, name="get_grocery_list"),
+    path("grocery-item/<int:item_id>/", views.get_grocery_item_details, name="get_grocery_item_details"),
+    path("grocery-item/<int:item_id>/remove/", views.remove_grocery_item, name="remove_grocery_item"),
 ]

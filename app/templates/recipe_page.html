@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Recipes & Grocery List{% endblock %}
+{% block title %}Groc - Recipes & Grocery List{% endblock %}
 
 {% block content %}
 <div class="centered-layout">
@@ -22,7 +22,7 @@
 
         <main class="split-layout">
             <aside class="grocery-list-sidebar">
-                <div class="grocery-list">
+                <div class="grocery-list" id="groceryList">
                     <h2>Grocery List</h2>
                     <ul>
                         <li>Item 1</li>
@@ -53,6 +53,10 @@
                 </div>
             </section>
         </main>
+
+        <div class="grocery-overlay" id="groceryOverlay">
+            <!-- Content will be loaded dynamically -->
+        </div>
     </div>
 </div>
 {% endblock %}

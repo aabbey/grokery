@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load content from simulated API
-    fetch('/app/get-simulated-recipe-data/')
+    fetch('/api/recipe-data/')
         .then(response => response.json())
         .then(data => {
             // Update recipes

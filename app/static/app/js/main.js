@@ -3,24 +3,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const plusButtons = document.querySelectorAll('.plus-btn');
   
     plusButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
-            const lineContainer = document.getElementById(targetId);
-            if (!lineContainer) return;
-  
+        const targetId = btn.getAttribute('data-target');
+        const lineContainer = document.getElementById(targetId);
+        if (!lineContainer) return;
+
+        // Initialize state
+        btn.setAttribute('data-state', '0');
+        
+        // Remove any existing click listeners
+        btn.replaceWith(btn.cloneNode(true));
+        const newBtn = document.querySelector(`[data-target="${targetId}"]`);
+        
+        newBtn.addEventListener('click', () => {
             const lines = lineContainer.querySelectorAll('.line');
             const activeLines = lineContainer.querySelectorAll('.line.active');
-  
+    
             // If all lines are active, reset them
             if (activeLines.length === lines.length) {
                 lines.forEach(line => line.classList.remove('active'));
+                newBtn.setAttribute('data-state', '0');
                 return;
             }
-  
+    
             // Otherwise, activate the next line
             const nextIndex = activeLines.length;
             if (nextIndex < lines.length) {
                 lines[nextIndex].classList.add('active');
+                newBtn.setAttribute('data-state', (nextIndex + 1).toString());
             }
         });
     });
@@ -32,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (groceryList && groceryOverlay) {
         groceryList.addEventListener('click', async () => {
             try {
-                const response = await fetch('/app/grocery-list/');
+                const response = await fetch('/api/grocery-list/');
                 const data = await response.json();
                 
                 groceryOverlay.innerHTML = data.html;
@@ -106,7 +115,7 @@ function closeGroceryList(overlay) {
 
 async function handleRemoveItem(itemId) {
     try {
-        const response = await fetch(`/app/grocery-item/${itemId}/remove/`, {
+        const response = await fetch(`/api/grocery-item/${itemId}/remove/`, {
             method: 'DELETE',
             headers: {
                 'X-CSRFToken': getCsrfToken(),
@@ -135,7 +144,7 @@ async function handleRemoveItem(itemId) {
 
 async function handleShowDetails(itemId) {
     try {
-        const response = await fetch(`/app/grocery-item/${itemId}/`);
+        const response = await fetch(`/api/grocery-item/${itemId}/`);
         const data = await response.json();
         
         if (data.status === 'success') {

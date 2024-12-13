@@ -8,6 +8,7 @@ from django.http import JsonResponse, Http404
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_http_methods
 import json
+import time  # Add this import for sleep functionality
 User = get_user_model()
 
 # Create your views here.
@@ -112,3 +113,35 @@ def get_grocery_item_details(request, item_id):
             'status': 'error',
             'message': str(e)
         }, status=400)
+
+@login_required(login_url='account_login')
+def get_simulated_recipe_data(request):
+    # Simulate API delay
+    time.sleep(2)
+    
+    # Mock data for recipes and grocery list
+    mock_data = {
+        'recipes': [
+            {
+                'title': 'Spaghetti Carbonara',
+                'description': 'A classic Italian pasta dish with eggs, cheese, pancetta, and black pepper.',
+                'ingredients': ['spaghetti', 'eggs', 'pecorino cheese', 'pancetta', 'black pepper'],
+                'instructions': ['Boil pasta', 'Cook pancetta', 'Mix eggs and cheese', 'Combine all ingredients']
+            },
+            {
+                'title': 'Chicken Stir Fry',
+                'description': 'Quick and healthy stir-fried chicken with vegetables.',
+                'ingredients': ['chicken breast', 'mixed vegetables', 'soy sauce', 'ginger', 'garlic'],
+                'instructions': ['Cut chicken', 'Prepare vegetables', 'Stir fry chicken', 'Add vegetables and sauce']
+            }
+        ],
+        'grocery_list': [
+            {'name': 'Spaghetti', 'quantity': '1', 'unit': 'pack'},
+            {'name': 'Eggs', 'quantity': '6', 'unit': 'pieces'},
+            {'name': 'Pecorino Cheese', 'quantity': '200', 'unit': 'g'},
+            {'name': 'Pancetta', 'quantity': '150', 'unit': 'g'},
+            {'name': 'Black Pepper', 'quantity': '1', 'unit': 'bottle'}
+        ]
+    }
+    
+    return JsonResponse(mock_data)

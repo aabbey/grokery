@@ -24,32 +24,33 @@
             <aside class="grocery-list-sidebar">
                 <div class="grocery-list" id="groceryList">
                     <h2>Grocery List</h2>
-                    <ul>
-                        <li>Item 1</li>
-                        <li>Item 2</li>
-                        <li>Item 3</li>
-                        <li>Item 4</li>
+                    <div id="groceryListLoading">
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Creating grocery list...</p>
+                        </div>
+                    </div>
+                    <ul id="groceryListContent" class="content-hidden">
+                        <!-- Content will be loaded dynamically -->
                     </ul>
                 </div>
             </aside>
             
             <section class="recipes-section">
                 <div class="recipes">
-                    <a href="#" class="recipe-item">
-                        <img src="#" alt="Recipe picture placeholder" />
-                        <div class="recipe-info">
-                            <h3>Recipe Name</h3>
+                    <div id="recipesLoading">
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
                         </div>
-                        <div class="recipe-options">⋮</div>
-                    </a>
-
-                    <a href="#" class="recipe-item">
-                        <img src="#" alt="Recipe picture placeholder" />
-                        <div class="recipe-info">
-                            <h3>Recipe Name</h3>
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
                         </div>
-                        <div class="recipe-options">⋮</div>
-                    </a>
+                    </div>
+                    <div id="recipesContent" class="content-hidden">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
                 </div>
             </section>
         </main>
@@ -59,4 +60,60 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to create recipe HTML
+    function createRecipeHTML(recipe) {
+        return `
+            <a href="#" class="recipe-item">
+                <img src="#" alt="${recipe.title}" />
+                <div class="recipe-info">
+                    <h3>${recipe.title}</h3>
+                    <p>${recipe.description}</p>
+                </div>
+                <div class="recipe-options">⋮</div>
+            </a>
+        `;
+    }
+
+    // Function to create grocery item HTML
+    function createGroceryItemHTML(item) {
+        return `<li>${item.name} - ${item.quantity} ${item.unit}</li>`;
+    }
+
+    // Load content from simulated API
+    fetch('/app/get-simulated-recipe-data/')
+        .then(response => response.json())
+        .then(data => {
+            // Update recipes
+            const recipesContent = document.getElementById('recipesContent');
+            recipesContent.innerHTML = data.recipes.map(recipe => createRecipeHTML(recipe)).join('');
+            
+            // Update grocery list
+            const groceryListContent = document.getElementById('groceryListContent');
+            groceryListContent.innerHTML = data.grocery_list.map(item => createGroceryItemHTML(item)).join('');
+            
+            // Hide loading spinners and show content
+            document.getElementById('recipesLoading').style.display = 'none';
+            document.getElementById('groceryListLoading').style.display = 'none';
+            recipesContent.classList.remove('content-hidden');
+            groceryListContent.classList.remove('content-hidden');
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            // Show error message to user
+            document.getElementById('recipesLoading').innerHTML = `
+                <div class="recipe-item loading">
+                    <p class="loading-text" style="color: #e74c3c;">Error loading recipes. Please try again later.</p>
+                </div>
+            `;
+            document.getElementById('groceryListLoading').innerHTML = `
+                <div class="recipe-item loading">
+                    <p class="loading-text" style="color: #e74c3c;">Error loading grocery list. Please try again later.</p>
+                </div>
+            `;
+        });
+});
+</script>
 {% endblock %}

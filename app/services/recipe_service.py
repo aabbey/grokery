@@ -1,35 +1,61 @@
-import time
+import os
+import json
+from openai import OpenAI
 
 class RecipeService:
     @staticmethod
     def get_recipes_and_grocery_list():
         """
-        Get recipes and associated grocery list.
-        In the future, this should interact with a real database.
+        Get recipes and associated grocery list using OpenAI's API.
         """
-        # Mock data for recipes and grocery list
-        mock_data = {
-            'recipes': [
-                {
-                    'title': 'Spaghetti Carbonara',
-                    'description': 'A classic Italian pasta dish with eggs, cheese, pancetta, and black pepper.',
-                    'ingredients': ['spaghetti', 'eggs', 'pecorino cheese', 'pancetta', 'black pepper'],
-                    'instructions': ['Boil pasta', 'Cook pancetta', 'Mix eggs and cheese', 'Combine all ingredients']
-                },
-                {
-                    'title': 'Chicken Stir Fry',
-                    'description': 'Quick and healthy stir-fried chicken with vegetables.',
-                    'ingredients': ['chicken breast', 'mixed vegetables', 'soy sauce', 'ginger', 'garlic'],
-                    'instructions': ['Cut chicken', 'Prepare vegetables', 'Stir fry chicken', 'Add vegetables and sauce']
-                }
-            ],
-            'grocery_list': [
-                {'name': 'Spaghetti', 'quantity': '1', 'unit': 'pack'},
-                {'name': 'Eggs', 'quantity': '6', 'unit': 'pieces'},
-                {'name': 'Pecorino Cheese', 'quantity': '200', 'unit': 'g'},
-                {'name': 'Pancetta', 'quantity': '150', 'unit': 'g'},
-                {'name': 'Black Pepper', 'quantity': '1', 'unit': 'bottle'}
-            ]
-        }
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+        # First prompt to get recipes
+        recipe_prompt = """Generate 7 easy-to-make, nutritious, and cost-effective meals for the week. 
+        The meals should have some ingredient overlap to minimize waste and extra purchases, while maintaining variety.
+        For each recipe, provide:
+        1. Title
+        2. Brief description
+        3. List of ingredients
+        4. Simple step-by-step instructions
         
-        return mock_data 
+        Format the response as a JSON array of recipes, where each recipe has the fields: 
+        'title', 'description', 'ingredients' (as array), 'instructions' (as array)."""
+
+        recipe_response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": recipe_prompt}
+            ],
+            response_format={ "type": "json_object" }
+        )
+        
+        # Parse the JSON string and handle the response structure
+        recipes_data = json.loads(recipe_response.choices[0].message.content)
+        # The response might be the direct array of recipes without the 'recipes' key
+        recipes = recipes_data if isinstance(recipes_data, list) else recipes_data.get('recipes', [])
+        
+        # Second prompt to generate consolidated grocery list
+        grocery_prompt = f"""Based on these recipes: {recipes}
+        Generate a consolidated grocery list with exact quantities needed for all 7 meals.
+        Format the response as a JSON array where each item has:
+        'name' (string), 'quantity' (string), 'unit' (string)
+        Combine similar ingredients and adjust quantities accordingly."""
+
+        grocery_response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": grocery_prompt}
+            ],
+            response_format={ "type": "json_object" }
+        )
+
+        # Parse the JSON string and handle the response structure
+        grocery_data = json.loads(grocery_response.choices[0].message.content)
+        grocery_list = grocery_data if isinstance(grocery_data, list) else grocery_data.get('grocery_list', [])
+
+        # Return the data in the expected format
+        return {
+            'recipes': recipes,
+            'grocery_list': grocery_list
+        }

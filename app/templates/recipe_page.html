@@ -63,14 +63,40 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Function to create recipe HTML
-    function createRecipeHTML(recipe) {
+    // Function to create recipe template HTML (minimal version)
+    function createRecipeTemplateHTML(recipe) {
         return `
             <a href="#" class="recipe-item">
-                <img src="#" alt="${recipe.title}" />
                 <div class="recipe-info">
                     <h3>${recipe.title}</h3>
                     <p>${recipe.description}</p>
+                </div>
+                <div class="recipe-loading">Loading details...</div>
+            </a>
+        `;
+    }
+
+    // Function to create detailed recipe HTML
+    function createDetailedRecipeHTML(recipe) {
+        const ingredientsList = recipe.ingredients.map(ing => 
+            `<li>${ing.quantity} ${ing.unit} ${ing.name}</li>`
+        ).join('');
+
+        const instructions = recipe.instructions.map(step => 
+            `<li>${step}</li>`
+        ).join('');
+
+        return `
+            <a href="#" class="recipe-item">
+                <div class="recipe-info">
+                    <h3>${recipe.title}</h3>
+                    <p>${recipe.description}</p>
+                    <div class="recipe-details">
+                        <h4>Ingredients:</h4>
+                        <ul>${ingredientsList}</ul>
+                        <h4>Instructions:</h4>
+                        <ol>${instructions}</ol>
+                    </div>
                 </div>
                 <div class="recipe-options">⋮</div>
             </a>
@@ -82,23 +108,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return `<li>${item.name} - ${item.quantity} ${item.unit}</li>`;
     }
 
-    // Load content from simulated API
+    // Load content from API with staged loading
     fetch('/api/recipe-data/')
         .then(response => response.json())
         .then(data => {
-            // Update recipes
+            // Update recipes with templates first
             const recipesContent = document.getElementById('recipesContent');
-            recipesContent.innerHTML = data.recipes.map(recipe => createRecipeHTML(recipe)).join('');
-            
-            // Update grocery list
-            const groceryListContent = document.getElementById('groceryListContent');
-            groceryListContent.innerHTML = data.grocery_list.map(item => createGroceryItemHTML(item)).join('');
-            
-            // Hide loading spinners and show content
-            document.getElementById('recipesLoading').style.display = 'none';
-            document.getElementById('groceryListLoading').style.display = 'none';
+            recipesContent.innerHTML = data.recipes.map(recipe => createRecipeTemplateHTML(recipe)).join('');
             recipesContent.classList.remove('content-hidden');
-            groceryListContent.classList.remove('content-hidden');
+            document.getElementById('recipesLoading').style.display = 'none';
+
+            if (data.status === 'complete') {
+                // Update with detailed recipes
+                recipesContent.innerHTML = data.recipes.map(recipe => createDetailedRecipeHTML(recipe)).join('');
+                
+                // Update grocery list
+                const groceryListContent = document.getElementById('groceryListContent');
+                groceryListContent.innerHTML = data.grocery_list.map(item => createGroceryItemHTML(item)).join('');
+                groceryListContent.classList.remove('content-hidden');
+                document.getElementById('groceryListLoading').style.display = 'none';
+            }
         })
         .catch(error => {
             console.error('Error loading data:', error);

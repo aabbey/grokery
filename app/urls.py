@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/grocery-item/<int:item_id>/', api_views.get_grocery_item_details, name='get_grocery_item_details'),
     path('api/grocery-item/<int:item_id>/remove/', api_views.remove_grocery_item, name='remove_grocery_item'),
     path('api/recipe-data/', api_views.get_simulated_recipe_data, name='get_simulated_recipe_data'),
+    path('api/recipes/', api_views.get_recipes, name='get_recipes'),
 ]

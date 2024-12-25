@@ -93,84 +93,62 @@ document.addEventListener('DOMContentLoaded', async function() {
         `;
     }
     
+    // Load recipes first
     try {
-        const response = await fetch('/api/recipe-data/');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        console.log('Fetching recipes...');
+        const recipesResponse = await fetch('/api/recipes/');
+        const recipesData = await recipesResponse.json();
         
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        
-        while (true) {
-            const {value, done} = await reader.read();
-            if (done) break;
-            
-            buffer += decoder.decode(value, {stream: true});
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-            
-            for (const line of lines) {
-                if (!line) continue;
-                
-                try {
-                    const data = JSON.parse(line);
-                    console.log('Received data:', data); // Debug logging
-                    
-                    if (data.status === 'error') {
-                        throw new Error(data.message);
-                    }
-                    
-                    switch(data.status) {
-                        case 'templates':
-                            // Show recipe templates immediately
-                            const templateHTML = data.recipes.map(recipe => 
-                                createRecipeTemplateHTML(recipe)
-                            ).join('');
-                            recipesContent.innerHTML = templateHTML;
-                            recipesContent.classList.remove('content-hidden');
-                            recipesLoading.style.display = 'none';
-                            break;
-                            
-                        case 'details':
-                            // Skip UI updates for details
-                            break;
-                            
-                        case 'complete':
-                            // Show grocery list when it's ready
-                            const groceryHTML = data.grocery_list.map(item => 
-                                createGroceryItemHTML(item)
-                            ).join('');
-                            groceryListContent.innerHTML = groceryHTML;
-                            groceryListContent.classList.remove('content-hidden');
-                            groceryListLoading.style.display = 'none';
-                            break;
-                    }
-                } catch (parseError) {
-                    console.error('Error parsing JSON:', parseError, 'Line:', line);
-                    throw parseError;
-                }
-            }
+        if (recipesData.status === 'success') {
+            console.log('Recipes received:', recipesData);
+            recipesContent.innerHTML = recipesData.recipes.map(recipe => 
+                createRecipeTemplateHTML(recipe)
+            ).join('');
+            recipesContent.classList.remove('content-hidden');
+            recipesLoading.style.display = 'none';
+        } else {
+            throw new Error(recipesData.message || 'Failed to load recipes');
         }
     } catch (error) {
-        console.error('Error:', error);
-        
-        const errorMessage = error.message || 'An unexpected error occurred';
-        const errorHTML = `
+        console.error('Error loading recipes:', error);
+        recipesContent.innerHTML = `
             <div class="recipe-item loading">
                 <p class="loading-text" style="color: #e74c3c;">
-                    Error: ${errorMessage}<br>
+                    Error: ${error.message}<br>
                     Please try again later.
                 </p>
             </div>
         `;
-        
-        recipesContent.innerHTML = errorHTML;
         recipesContent.classList.remove('content-hidden');
         recipesLoading.style.display = 'none';
+    }
+    
+    // Then load grocery list
+    try {
+        console.log('Fetching grocery list...');
+        const groceryResponse = await fetch('/api/grocery-list/');
+        const groceryData = await groceryResponse.json();
         
-        groceryListContent.innerHTML = errorHTML;
+        if (groceryData.status === 'success') {
+            console.log('Grocery list received:', groceryData);
+            groceryListContent.innerHTML = groceryData.grocery_list.map(item =>
+                createGroceryItemHTML(item)
+            ).join('');
+            groceryListContent.classList.remove('content-hidden');
+            groceryListLoading.style.display = 'none';
+        } else {
+            throw new Error(groceryData.message || 'Failed to load grocery list');
+        }
+    } catch (error) {
+        console.error('Error loading grocery list:', error);
+        groceryListContent.innerHTML = `
+            <div class="recipe-item loading">
+                <p class="loading-text" style="color: #e74c3c;">
+                    Error: ${error.message}<br>
+                    Please try again later.
+                </p>
+            </div>
+        `;
         groceryListContent.classList.remove('content-hidden');
         groceryListLoading.style.display = 'none';
     }

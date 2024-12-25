@@ -15,12 +15,41 @@ from app.services.grocery_service import GroceryService
 logger = logging.getLogger(__name__)
 
 @login_required(login_url='account_login')
-def get_grocery_list(request):
-    context = {
-        'debug': 'This is a test response'
-    }
-    html = render_to_string('grocery_list_expanded.html', context)
-    return JsonResponse({'html': html})
+async def get_recipes(request):
+    try:
+        # Get just the recipe templates
+        recipe_templates = await sync_to_async(RecipeService.get_recipe_templates)()
+        return JsonResponse({
+            'status': 'success',
+            'recipes': recipe_templates
+        })
+    except Exception as e:
+        logger.error(f"Error getting recipes: {str(e)}\n{traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error generating recipes'
+        }, status=400)
+
+@login_required(login_url='account_login')
+async def get_grocery_list(request):
+    try:
+        # Get templates first (needed for grocery list generation)
+        recipe_templates = await sync_to_async(RecipeService.get_recipe_templates)()
+        # Get details for grocery list
+        detailed_recipes = await RecipeService.get_all_recipe_details(recipe_templates)
+        # Generate grocery list
+        grocery_list = await sync_to_async(RecipeService.generate_grocery_list)(detailed_recipes)
+        
+        return JsonResponse({
+            'status': 'success',
+            'grocery_list': grocery_list
+        })
+    except Exception as e:
+        logger.error(f"Error getting grocery list: {str(e)}\n{traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error generating grocery list'
+        }, status=400)
 
 @login_required(login_url='account_login')
 @require_http_methods(["DELETE"])

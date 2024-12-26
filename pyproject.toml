@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "groc"
+name = "grokery"
 version = "0.1.0"
-description = "Grocery planner and recipe app"
+description = "Grokery - Smart grocery planner and recipe app"
 authors = ["aabbey <39168609+aabbey@users.noreply.github.com>"]
 readme = "README.md"
 

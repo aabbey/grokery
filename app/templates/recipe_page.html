@@ -27,7 +27,7 @@
                     <div id="groceryListLoading">
                         <div class="recipe-item loading">
                             <div class="loading-spinner"></div>
-                            <p class="loading-text">Creating grocery list...</p>
+                            <p class="loading-text" id="groceryListStatus">Waiting for recipe ideas...</p>
                         </div>
                     </div>
                     <ul id="groceryListContent" class="content-hidden">
@@ -39,6 +39,26 @@
             <section class="recipes-section">
                 <div class="recipes">
                     <div id="recipesLoading">
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
+                        </div>
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
+                        </div>
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
+                        </div>
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
+                        </div>
+                        <div class="recipe-item loading">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">Making recipe...</p>
+                        </div>
                         <div class="recipe-item loading">
                             <div class="loading-spinner"></div>
                             <p class="loading-text">Making recipe...</p>
@@ -61,111 +81,6 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', async function() {
-    const recipesContent = document.getElementById('recipesContent');
-    const groceryListContent = document.getElementById('groceryListContent');
-    const recipesLoading = document.getElementById('recipesLoading');
-    const groceryListLoading = document.getElementById('groceryListLoading');
-    
-    // Helper functions to create HTML
-    function createRecipeTemplateHTML(recipe) {
-        return `
-            <div class="recipe-item" data-recipe-id="${recipe.id}">
-                <div class="recipe-image">
-                    ${recipe.image ? 
-                        `<img src="data:image/jpeg;base64,${recipe.image}" alt="${recipe.title}" loading="lazy">` :
-                        `<div class="placeholder-image">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                        </div>`
-                    }
-                </div>
-                <div class="recipe-content">
-                    <h3>${recipe.title}</h3>
-                    <p>${recipe.description}</p>
-                </div>
-            </div>
-        `;
-    }
-
-    function createGroceryItemHTML(item) {
-        return `
-            <li class="grocery-item">
-                <span>${item.quantity} ${item.unit} ${item.name}</span>
-                <button class="item-menu-btn" data-item-id="${item.id || '0'}" onclick="handleShowDetails('${item.id || '0'}')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="1" />
-                        <circle cx="12" cy="5" r="1" />
-                        <circle cx="12" cy="19" r="1" />
-                    </svg>
-                </button>
-            </li>
-        `;
-    }
-    
-    // Load recipes first
-    try {
-        console.log('Fetching recipes...');
-        const recipesResponse = await fetch('/api/recipes/');
-        const recipesData = await recipesResponse.json();
-        
-        if (recipesData.status === 'success') {
-            console.log('Recipes received:', recipesData);
-            recipesContent.innerHTML = recipesData.recipes.map(recipe => 
-                createRecipeTemplateHTML(recipe)
-            ).join('');
-            recipesContent.classList.remove('content-hidden');
-            recipesLoading.style.display = 'none';
-        } else {
-            throw new Error(recipesData.message || 'Failed to load recipes');
-        }
-    } catch (error) {
-        console.error('Error loading recipes:', error);
-        recipesContent.innerHTML = `
-            <div class="recipe-item loading">
-                <p class="loading-text" style="color: #e74c3c;">
-                    Error: ${error.message}<br>
-                    Please try again later.
-                </p>
-            </div>
-        `;
-        recipesContent.classList.remove('content-hidden');
-        recipesLoading.style.display = 'none';
-    }
-    
-    // Then load grocery list
-    try {
-        console.log('Fetching grocery list...');
-        const groceryResponse = await fetch('/api/grocery-list/');
-        const groceryData = await groceryResponse.json();
-        
-        if (groceryData.status === 'success') {
-            console.log('Grocery list received:', groceryData);
-            groceryListContent.innerHTML = groceryData.grocery_list.map(item =>
-                createGroceryItemHTML(item)
-            ).join('');
-            groceryListContent.classList.remove('content-hidden');
-            groceryListLoading.style.display = 'none';
-        } else {
-            throw new Error(groceryData.message || 'Failed to load grocery list');
-        }
-    } catch (error) {
-        console.error('Error loading grocery list:', error);
-        groceryListContent.innerHTML = `
-            <div class="recipe-item loading">
-                <p class="loading-text" style="color: #e74c3c;">
-                    Error: ${error.message}<br>
-                    Please try again later.
-                </p>
-            </div>
-        `;
-        groceryListContent.classList.remove('content-hidden');
-        groceryListLoading.style.display = 'none';
-    }
-});
-</script>
+<script src="{% static 'app/js/recipes.js' %}"></script>
+<script src="{% static 'app/js/grocery-list.js' %}"></script>
 {% endblock %}

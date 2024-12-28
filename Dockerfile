@@ -5,28 +5,44 @@ FROM python:3.13-slim
 ENV PYTHONUNBUFFERED 1
 ENV POETRY_HOME="/opt/poetry"
 ENV PATH="$POETRY_HOME/bin:$PATH"
+ENV PORT=8000
+ENV DJANGO_SETTINGS_MODULE=groc.settings
 
 # Set the working directory
 WORKDIR /app
 
 # Install system dependencies and Poetry
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl build-essential && \
-    curl -sSL https://install.python-poetry.org | python3 - && \
-    apt-get purge -y --auto-remove curl && \
-    rm -rf /var/lib/apt/lists/*
+    curl \
+    build-essential \
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && poetry config virtualenvs.create false \
+    && apt-get purge -y --auto-remove curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the pyproject.toml and poetry.lock to the working directory
+# Copy just the dependency files first
 COPY pyproject.toml poetry.lock ./
 
-# Install Python dependencies using Poetry
-RUN poetry install --no-root
+# Install dependencies
+RUN poetry install --no-interaction --no-ansi --no-root
 
-# Copy the rest of the application code to the working directory
+# Copy the rest of the application code
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 8000
+# Install the project itself
+RUN poetry install --no-interaction --no-ansi
 
-# Run the Django development server
-CMD ["poetry", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Collect static files
+RUN poetry run python manage.py collectstatic --noinput
+
+# Expose the port the app runs on
+EXPOSE $PORT
+
+# Create a script to run migrations and start the server
+RUN echo '#!/bin/sh\n\
+poetry run python manage.py migrate --noinput\n\
+poetry run uvicorn groc.asgi:application --host 0.0.0.0 --port $PORT --workers 4' > /app/start.sh \
+    && chmod +x /app/start.sh
+
+# Run the start script
+CMD ["/app/start.sh"]

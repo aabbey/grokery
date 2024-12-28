@@ -15,14 +15,9 @@ function createGroceryItemHTML(item) {
 }
 
 // Initialize grocery list functionality
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
     const groceryList = document.getElementById('groceryList');
     const groceryOverlay = document.getElementById('groceryOverlay');
-    const groceryListContent = document.getElementById('groceryListContent');
-    const groceryListLoading = document.getElementById('groceryListLoading');
-
-    // Load grocery list
-    await loadGroceryList();
 
     // Set up grocery list click handlers
     if (groceryList && groceryOverlay) {
@@ -49,45 +44,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 });
-
-async function loadGroceryList() {
-    const groceryListStatus = document.getElementById('groceryListStatus');
-    if (groceryListStatus) {
-        groceryListStatus.textContent = 'Building grocery list...';
-    }
-
-    const groceryListContent = document.getElementById('groceryListContent');
-    const groceryListLoading = document.getElementById('groceryListLoading');
-
-    try {
-        console.log('Fetching grocery list...');
-        const groceryResponse = await fetch('/api/grocery-list/');
-        const groceryData = await groceryResponse.json();
-        
-        if (groceryData.status === 'success') {
-            console.log('Grocery list received:', groceryData);
-            groceryListContent.innerHTML = groceryData.grocery_list.map(item =>
-                createGroceryItemHTML(item)
-            ).join('');
-            groceryListContent.classList.remove('content-hidden');
-            groceryListLoading.style.display = 'none';
-        } else {
-            throw new Error(groceryData.message || 'Failed to load grocery list');
-        }
-    } catch (error) {
-        console.error('Error loading grocery list:', error);
-        groceryListContent.innerHTML = `
-            <div class="recipe-item loading">
-                <p class="loading-text" style="color: #e74c3c;">
-                    Error: ${error.message}<br>
-                    Please try again later.
-                </p>
-            </div>
-        `;
-        groceryListContent.classList.remove('content-hidden');
-        groceryListLoading.style.display = 'none';
-    }
-}
 
 function setupGroceryListHandlers(overlay) {
     // Close button handler

@@ -30,111 +30,86 @@ function createRecipeTemplateHTML(recipe) {
 }
 
 // Initialize recipe functionality
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
     const recipesContent = document.getElementById('recipesContent');
     const recipesLoading = document.getElementById('recipesLoading');
+    const groceryListStatus = document.getElementById('groceryListStatus');
+    const groceryListContent = document.getElementById('groceryListContent');
+    const groceryListLoading = document.getElementById('groceryListLoading');
     
-    // Set up EventSource for recipe updates
-    setupRecipeUpdates();
+    // Set up EventSource for recipe generation stream
+    setupRecipeStream();
 });
 
-function setupRecipeUpdates() {
-    console.log('Setting up recipe updates stream');
-    const eventSource = new EventSource('/api/recipes/stream/');
+function setupRecipeStream() {
+    console.log('Setting up recipe generation stream');
+    const eventSource = new EventSource('/api/recipes/generate/');
     const recipesContent = document.getElementById('recipesContent');
     const recipesLoading = document.getElementById('recipesLoading');
+    const groceryListStatus = document.getElementById('groceryListStatus');
+    const groceryListContent = document.getElementById('groceryListContent');
+    const groceryListLoading = document.getElementById('groceryListLoading');
     const recipesById = new Map();
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
     
     eventSource.onmessage = function(event) {
         try {
-            // Parse SSE data
             const data = JSON.parse(event.data);
-            console.log('Received SSE update:', data);
+            console.log('Received stream update:', data);
 
-            // If there is an error, handle it
-            if (data.error) {
-                console.error('Stream error:', data.error);
-                handleStreamError(data.error);
-                return;
-            }
-
-            // If done, clean up
-            if (data.done) {
-                console.log('Recipe stream completed');
-                const groceryListStatus = document.getElementById('groceryListStatus');
-                if (groceryListStatus) {
-                    groceryListStatus.textContent = 'Generating grocery list...';
-                }
-                eventSource.close();
-                return;
-            }
-
-            // If the server sent updated recipes
-            if (data.recipes) {
-                console.log(`Processing ${data.recipes.length} recipe updates`);
-                // Update our local cache and the DOM
-                data.recipes.forEach(recipe => {
-                    console.log(`Updating recipe ${recipe.id}:`, {
-                        title: recipe.title,
-                        hasImage: !!recipe.image,
-                        imageLoading: recipe.image_loading,
-                        hasIngredients: recipe.ingredients?.length > 0,
-                        hasInstructions: recipe.instructions?.length > 0
-                    });
-                    recipesById.set(recipe.id, recipe);
-                    updateRecipe(recipe);
-                });
-
-                // If this is the first update (initial templates), show the content
-                if (recipesLoading.style.display !== 'none') {
+            switch (data.type) {
+                case 'templates':
+                    // Initial recipe templates
+                    data.recipes.forEach(recipe => recipesById.set(recipe.id, recipe));
                     recipesContent.innerHTML = Array.from(recipesById.values())
                         .map(recipe => createRecipeTemplateHTML(recipe))
                         .join('');
                     recipesContent.classList.remove('content-hidden');
                     recipesLoading.style.display = 'none';
-                }
+                    groceryListStatus.textContent = 'Generating recipe details...';
+                    break;
 
-                // Check if all recipes have ingredients & instructions
-                const allRecipes = Array.from(recipesById.values());
-                const allHaveDetails = allRecipes.length > 0 && allRecipes.every(r =>
-                    r.ingredients?.length && r.instructions?.length
-                );
-                
-                if (allHaveDetails) {
-                    console.log('All recipes have complete details');
-                    const groceryListStatus = document.getElementById('groceryListStatus');
-                    if (groceryListStatus) {
-                        groceryListStatus.textContent = 'Generating grocery list...';
-                    }
-                }
+                case 'updates':
+                    // Recipe updates (images or details)
+                    data.recipes.forEach(recipe => {
+                        recipesById.set(recipe.id, recipe);
+                        updateRecipe(recipe);
+                    });
+                    break;
+
+                case 'grocery_list':
+                    // Grocery list is ready
+                    groceryListContent.innerHTML = data.grocery_list.map(item =>
+                        createGroceryItemHTML(item)
+                    ).join('');
+                    groceryListContent.classList.remove('content-hidden');
+                    groceryListLoading.style.display = 'none';
+                    groceryListStatus.textContent = 'Grocery list ready!';
+                    break;
+
+                case 'complete':
+                    // All processing is complete
+                    console.log('Recipe generation complete');
+                    eventSource.close();
+                    break;
+
+                case 'error':
+                    // Handle any errors
+                    console.error('Stream error:', data.error);
+                    handleStreamError(data.error);
+                    eventSource.close();
+                    break;
             }
         } catch (error) {
-            console.error('Error processing recipe update:', error);
+            console.error('Error processing stream update:', error);
             handleStreamError(error);
         }
     };
 
-    eventSource.onopen = function() {
-        console.log('EventSource connection opened');
-        retryCount = 0;  // Reset retry count on successful connection
-    };
-
     eventSource.onerror = function(error) {
         console.error('EventSource error:', error);
-        retryCount++;
-        
-        if (retryCount >= MAX_RETRIES) {
-            console.error('Max retries reached. Closing EventSource.');
-            eventSource.close();
-            handleStreamError('Connection failed after multiple retries');
-        } else {
-            console.log(`Retry attempt ${retryCount}/${MAX_RETRIES}`);
-        }
+        handleStreamError('Connection error occurred');
+        eventSource.close();
     };
-
-    return eventSource;
 }
 
 function handleStreamError(error) {
@@ -143,7 +118,7 @@ function handleStreamError(error) {
     const errorMessage = document.createElement('div');
     errorMessage.className = 'error-message';
     errorMessage.innerHTML = `
-        <p>Error loading recipe updates: ${error}</p>
+        <p>Error loading recipes: ${error}</p>
         <button onclick="location.reload()">Retry</button>
     `;
     recipesContent.appendChild(errorMessage);
@@ -153,7 +128,6 @@ function updateRecipe(recipe) {
     console.log(`Updating DOM for recipe ${recipe.id}`);
     const recipeElement = document.querySelector(`[data-recipe-id="${recipe.id}"]`);
     if (recipeElement) {
-        // Rewrite the entire HTML with the updated recipe data
         recipeElement.outerHTML = createRecipeTemplateHTML(recipe);
         console.log(`DOM updated for recipe ${recipe.id}`);
     } else {

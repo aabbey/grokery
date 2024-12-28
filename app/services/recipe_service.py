@@ -3,7 +3,8 @@ import json
 import asyncio
 import logging
 from openai import AsyncOpenAI
-from typing import Dict, List, Any
+from anthropic import AsyncAnthropic
+from typing import Dict, List, Any, Literal, Optional
 import aiohttp
 import base64
 from io import BytesIO
@@ -12,16 +13,98 @@ import contextlib
 
 logger = logging.getLogger(__name__)
 
+# Model selection: either "gpt-4o-mini" or "claude-3.5-haiku"
+SELECTED_MODEL: Literal["gpt-4o-mini", "claude-3-5-haiku-20241022"] = "claude-3-5-haiku-20241022"
+
+# Define a default schema outside the method, or define multiple schemas as needed elsewhere.
+DEFAULT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "ingredients": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "quantity": {"type": "string"},
+                    "unit": {"type": "string"}
+                },
+                "required": ["name", "quantity", "unit"]
+            }
+        },
+        "instructions": {
+            "type": "array",
+            "items": {"type": "string"}
+        }
+    },
+    "required": ["ingredients", "instructions"]
+}
+
 class RecipeService:
     _http_client = None
+    _openai_client = None
+    _anthropic_client = None
 
     @classmethod
     async def _get_openai_client(cls) -> AsyncOpenAI:
         """Get a new OpenAI client instance for each request."""
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-        return AsyncOpenAI(api_key=api_key)
+        if cls._openai_client is None:
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is not set")
+            cls._openai_client = AsyncOpenAI(api_key=api_key)
+        return cls._openai_client
+
+    @classmethod
+    async def _get_anthropic_client(cls) -> AsyncAnthropic:
+        """Get a new Anthropic client instance for each request."""
+        if cls._anthropic_client is None:
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            if not api_key:
+                raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
+            cls._anthropic_client = AsyncAnthropic(api_key=api_key)
+        return cls._anthropic_client
+
+    @classmethod
+    async def _get_completion(cls, prompt: str, schema: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Get completion from selected model.
+        Optionally pass in a JSON schema if using Anthropic, which we can
+        include in the 'tools' parameter to enforce structured output.
+        """
+        if SELECTED_MODEL == "gpt-4o-mini":
+            client = await cls._get_openai_client()
+            response = await client.chat.completions.create(
+                model=SELECTED_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that always responds with valid JSON objects only, no markdown formatting or additional text."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                response_format={"type": "json_object"}
+            )
+            return json.loads(response.choices[0].message.content)
+        else:  # claude-3-5-haiku-20241022
+            client = await cls._get_anthropic_client()
+            schema_to_use = schema or DEFAULT_SCHEMA
+
+            response = await client.messages.create(
+                model=SELECTED_MODEL,
+                max_tokens=2048,
+                system="You are a helpful assistant that always responds with a valid JSON object only.",
+                tools=[
+                    {
+                        "name": "record_recipe",
+                        "description": "Generate structured JSON for the given recipe prompt.",
+                        "input_schema": schema_to_use,
+                    }
+                ],
+                tool_choice={"type": "tool", "name": "record_recipe"},
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+            )
+            return response.content[0].input
 
     @classmethod
     async def _get_http_client(cls) -> aiohttp.ClientSession:
@@ -84,7 +167,7 @@ class RecipeService:
             "width": 256,
             "height": 256,
             "response_format": "b64",
-            "steps": 3
+            "steps": 4
         }
         headers = {
             "accept": "application/json",
@@ -125,7 +208,6 @@ class RecipeService:
         
         try:
             logger.info(f"Getting details for recipe: {recipe_template['title']}")
-            client = await cls._get_openai_client()
 
             detail_prompt = f"""For this recipe: {recipe_template['title']} - {recipe_template['description']}
             Generate detailed ingredients and instructions.
@@ -148,21 +230,37 @@ class RecipeService:
             }}
 
             Return only the JSON object, no other text."""
+            
+            # Define a schema specifically for recipe details
+            detail_schema = {
+                "type": "object",
+                "properties": {
+                    "ingredients": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "quantity": {"type": "string"},
+                                "unit": {"type": "string"}
+                            },
+                            "required": ["name", "quantity", "unit"]
+                        }
+                    },
+                    "instructions": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                },
+                "required": ["ingredients", "instructions"]
+            }
 
-            # Get recipe details first
-            detail_response = await client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that always responds with valid JSON objects only, no markdown formatting or additional text."},
-                    {"role": "user", "content": detail_prompt}
-                ],
-                temperature=0.7
-            )
+            # Get recipe details using selected model with a schema
+            details = await cls._get_completion(detail_prompt, schema=detail_schema)
             
-            if not detail_response.choices or not detail_response.choices[0].message.content:
-                raise ValueError("No response content from OpenAI")
+            if not details:
+                raise ValueError("No response content from AI model")
             
-            details = cls._validate_json_response(detail_response.choices[0].message.content)
             
             # Create initial result without image
             result = {
@@ -180,7 +278,7 @@ class RecipeService:
             # Return initial result immediately
             logger.info(f"Returning initial recipe details for {recipe_template['title']}")
             return result, image_task
-            
+
         except Exception as e:
             logger.error(f"Error getting recipe details for {recipe_template['title']}: {str(e)}", exc_info=True)
             raise
@@ -188,32 +286,11 @@ class RecipeService:
             # Remove from processing set when done
             cls._processing_recipes.remove(recipe_id)
 
-    @staticmethod
-    def _validate_json_response(response_content: str) -> Dict[str, Any]:
-        """Validate and parse JSON response from OpenAI."""
-        try:
-            # Clean up markdown formatting if present
-            content = response_content.strip()
-            if content.startswith('```json'):
-                content = content[7:]  # Remove ```json prefix
-            if content.startswith('```'):
-                content = content[3:]  # Remove ``` prefix
-            if content.endswith('```'):
-                content = content[:-3]  # Remove ``` suffix
-            
-            content = content.strip()
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            print(f"Invalid JSON response: {response_content}")
-            raise ValueError(f"Failed to parse OpenAI response as JSON: {str(e)}")
-
     @classmethod
     async def get_recipe_templates(cls):
         """
         Get basic recipe templates for the week.
         """
-        client = await cls._get_openai_client()
-
         template_prompt = """Generate 7 easy-to-make, nutritious, and cost-effective meals for the week. 
         For each recipe, provide just:
         1. Title
@@ -233,20 +310,32 @@ class RecipeService:
         
         Make sure to include exactly 7 recipes and return only the JSON object, no other text."""
 
+        # Define a schema for weekly recipe templates
+        template_schema = {
+            "type": "object",
+            "properties": {
+                "recipes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "title": {"type": "string"},
+                            "description": {"type": "string"}
+                        },
+                        "required": ["id", "title", "description"]
+                    }
+                }
+            },
+            "required": ["recipes"]
+        }
+
         try:
-            template_response = await client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that always responds with valid JSON."},
-                    {"role": "user", "content": template_prompt}
-                ],
-                temperature=0.7
-            )
+            templates_data = await cls._get_completion(template_prompt, schema=template_schema)
             
-            if not template_response.choices or not template_response.choices[0].message.content:
-                raise ValueError("No response content from OpenAI")
+            if not templates_data:
+                raise ValueError("No response content from AI model")
             
-            templates_data = cls._validate_json_response(template_response.choices[0].message.content)
             return templates_data.get('recipes', [])
         except Exception as e:
             logger.error(f"Error getting recipe templates: {str(e)}")
@@ -292,8 +381,6 @@ class RecipeService:
         """
         Generate consolidated grocery list from all recipes.
         """
-        client = await cls._get_openai_client()
-
         # Filter out only the needed recipe information
         recipe_data = [{
             'title': recipe['title'],
@@ -318,20 +405,32 @@ class RecipeService:
         
         Combine similar ingredients, adjust quantities accordingly, and return only the JSON object, no other text."""
 
+        # Define a schema for the grocery list
+        grocery_schema = {
+            "type": "object",
+            "properties": {
+                "grocery_list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "quantity": {"type": "string"},
+                            "unit": {"type": "string"}
+                        },
+                        "required": ["name", "quantity", "unit"]
+                    }
+                }
+            },
+            "required": ["grocery_list"]
+        }
+
         try:
-            grocery_response = await client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that always responds with valid JSON objects only, no markdown formatting or additional text."},
-                    {"role": "user", "content": grocery_prompt}
-                ],
-                temperature=0.7
-            )
+            grocery_data = await cls._get_completion(grocery_prompt, schema=grocery_schema)
             
-            if not grocery_response.choices or not grocery_response.choices[0].message.content:
-                raise ValueError("No response content from OpenAI")
+            if not grocery_data:
+                raise ValueError("No response content from AI model")
             
-            grocery_data = cls._validate_json_response(grocery_response.choices[0].message.content)
             return grocery_data.get('grocery_list', [])
         except Exception as e:
             logger.error(f"Error generating grocery list: {str(e)}", exc_info=True)

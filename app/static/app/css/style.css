@@ -248,7 +248,11 @@ h1 {
 }
 
 .recipe-content {
-    padding: 1.5rem;
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .recipe-content h3 {
@@ -866,5 +870,17 @@ header h1 {
     margin: 0;
     font-size: 0.9rem;
     text-align: center;
+}
+
+.recipe-details.hidden {
+    display: none;
+}
+
+.recipe-content {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
   

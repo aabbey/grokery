@@ -19,12 +19,11 @@ function createRecipeTemplateHTML(recipe) {
             <div class="recipe-content">
                 <h3>${recipe.title}</h3>
                 <p>${recipe.description}</p>
-                ${recipe.ingredients?.length && recipe.instructions?.length ? 
-                    `<button class="view-details-btn" onclick="viewRecipeDetails(${recipe.id})">
+                <div class="recipe-details ${recipe.ingredients?.length && recipe.instructions?.length ? '' : 'hidden'}">
+                    <button class="view-details-btn" onclick="viewRecipeDetails(${recipe.id})">
                         View Recipe Details
-                    </button>` : 
-                    ''
-                }
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -35,66 +34,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     const recipesContent = document.getElementById('recipesContent');
     const recipesLoading = document.getElementById('recipesLoading');
     
-    // Load recipes
-    await loadRecipes();
+    // Set up EventSource for recipe updates
+    setupRecipeUpdates();
 });
-
-async function loadRecipes() {
-    const recipesContent = document.getElementById('recipesContent');
-    const recipesLoading = document.getElementById('recipesLoading');
-    let eventSource = null;
-
-    try {
-        console.log('Fetching recipes...');
-        const recipesResponse = await fetch('/api/recipes/');
-        const recipesData = await recipesResponse.json();
-        
-        if (recipesData.status === 'success') {
-            console.log('Recipes received:', recipesData);
-            
-            // Change spinner text once recipe templates have arrived
-            const groceryListStatus = document.getElementById('groceryListStatus');
-            if (groceryListStatus) {
-                groceryListStatus.textContent = 'Waiting for recipe details...';
-            }
-
-            // Initial render of recipes
-            recipesContent.innerHTML = recipesData.recipes.map(recipe => 
-                createRecipeTemplateHTML(recipe)
-            ).join('');
-            recipesContent.classList.remove('content-hidden');
-            recipesLoading.style.display = 'none';
-
-            // Set up EventSource for recipe updates
-            eventSource = setupRecipeUpdates();
-        } else {
-            throw new Error(recipesData.message || 'Failed to load recipes');
-        }
-    } catch (error) {
-        console.error('Error loading recipes:', error);
-        recipesContent.innerHTML = `
-            <div class="recipe-item loading">
-                <p class="loading-text" style="color: #e74c3c;">
-                    Error: ${error.message}<br>
-                    Please try again later.
-                </p>
-            </div>
-        `;
-        recipesContent.classList.remove('content-hidden');
-        recipesLoading.style.display = 'none';
-    }
-
-    // Add cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        if (eventSource) {
-            eventSource.close();
-        }
-    });
-}
 
 function setupRecipeUpdates() {
     console.log('Setting up recipe updates stream');
     const eventSource = new EventSource('/api/recipes/stream/');
+    const recipesContent = document.getElementById('recipesContent');
+    const recipesLoading = document.getElementById('recipesLoading');
     const recipesById = new Map();
     let retryCount = 0;
     const MAX_RETRIES = 3;
@@ -138,6 +86,15 @@ function setupRecipeUpdates() {
                     recipesById.set(recipe.id, recipe);
                     updateRecipe(recipe);
                 });
+
+                // If this is the first update (initial templates), show the content
+                if (recipesLoading.style.display !== 'none') {
+                    recipesContent.innerHTML = Array.from(recipesById.values())
+                        .map(recipe => createRecipeTemplateHTML(recipe))
+                        .join('');
+                    recipesContent.classList.remove('content-hidden');
+                    recipesLoading.style.display = 'none';
+                }
 
                 // Check if all recipes have ingredients & instructions
                 const allRecipes = Array.from(recipesById.values());

@@ -43,6 +43,7 @@ async def get_recipes(request):
 @login_required(login_url='account_login')
 def stream_recipe_updates(request):
     async def event_stream_async():
+        image_tasks = []  # Initialize at the start
         try:
             print("\n=== Starting Recipe Stream Event Loop ===")
             logger.info("Starting recipe stream")
@@ -50,6 +51,8 @@ def stream_recipe_updates(request):
             # 1) Fetch recipe templates
             print("1. Fetching recipe templates...")
             recipe_templates = await RecipeService.get_recipe_templates()
+            if not recipe_templates:
+                raise ValueError("Failed to get recipe templates")
             print(f"   ✓ Fetched {len(recipe_templates)} recipe templates")
             logger.info(f"Fetched {len(recipe_templates)} recipe templates")
             
@@ -77,156 +80,98 @@ def stream_recipe_updates(request):
             yield "data: " + json.dumps({"recipes": recipes}) + "\n\n"
             print("   ✓ Initial templates sent")
 
-            # 2) Get full details and image tasks in parallel
-            print("\n=== Starting Parallel Recipe Detail Fetching ===")
-            logger.info("Starting parallel recipe detail fetching")
+            # Start both image generation and recipe details in parallel
+            print("\n=== Starting Parallel Processing ===")
+            
+            # Create tasks list for all async operations
+            tasks = []
+            
+            # Start image generation tasks
+            print("4. Starting image generation tasks...")
+            for template in recipe_templates:
+                recipe_text = f"{template['title']} - {template['description']}"
+                print(f"   Starting image task for: {template['title']}")
+                image_task = asyncio.create_task(
+                    RecipeService._generate_recipe_image(recipe_text, template['visual_description'])
+                )
+                image_tasks.append((template['id'], image_task))
+                tasks.append(image_task)
+            print(f"   ✓ Started {len(image_tasks)} image generation tasks")
+
+            # Start recipe detail tasks
+            print("5. Starting recipe detail tasks...")
             detail_tasks = []
             for template in recipe_templates:
                 print(f"   Creating detail task for recipe: {template['title']}")
-                detail_tasks.append(RecipeService.get_recipe_details(template))
+                detail_task = asyncio.create_task(RecipeService.get_recipe_details(template))
+                detail_tasks.append((template['id'], detail_task))
+                tasks.append(detail_task)
+            print(f"   ✓ Created {len(detail_tasks)} recipe detail tasks")
 
-            print(f"\n4. Waiting for {len(detail_tasks)} recipe details to complete...")
-            # Wait for all recipe details to complete
-            detail_results = await asyncio.gather(*detail_tasks, return_exceptions=True)
-            print("   ✓ All recipe details fetched")
-            logger.info("Completed fetching recipe details")
+            # Process tasks as they complete
+            print("\n6. Processing tasks as they complete...")
+            while tasks:
+                done, pending = await asyncio.wait(
+                    tasks,
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                tasks = list(pending)
 
-            # Process recipe details and collect image tasks
-            print("\n=== Processing Recipe Details & Images ===")
-            image_tasks = []
-            updated_recipes = []
-            
-            for template, result in zip(recipe_templates, detail_results):
-                if isinstance(result, Exception):
-                    print(f"   ✗ Failed to get details for recipe {template['title']}: {str(result)}")
-                    logger.error(f"Failed to get details for recipe {template['title']}: {str(result)}")
-                    processed_recipes.add(template['id'])  # Mark as processed even if failed
-                    continue
-
-                if result is None or not isinstance(result, tuple) or len(result) != 2:
-                    print(f"   ✗ Invalid result for recipe {template['title']}")
-                    logger.warning(f"Invalid result for recipe {template['title']}")
-                    processed_recipes.add(template['id'])  # Mark as processed even if invalid
-                    continue
-
-                recipe_data, img_task = result
-                if not recipe_data or 'id' not in recipe_data:
-                    print(f"   ✗ Invalid recipe data for {template['title']}")
-                    logger.warning(f"Invalid recipe data for {template['title']}")
-                    processed_recipes.add(template['id'])  # Mark as processed even if invalid
-                    continue
-
-                rid = recipe_data['id']
-                if rid in recipes_by_id:
-                    print(f"   Processing details for recipe: {recipe_data['title']}")
-                    logger.info(f"Processing details for recipe {recipe_data['title']}")
-                    recipes_by_id[rid].update({
-                        'ingredients': recipe_data.get('ingredients', []),
-                        'instructions': recipe_data.get('instructions', [])
-                    })
-                    updated_recipes.append(recipes_by_id[rid])
-                    if img_task:
-                        print(f"   + Added image task for recipe: {recipe_data['title']}")
-                        logger.info(f"Added image task for recipe {recipe_data['title']}")
-                        image_tasks.append((rid, img_task))
-
-            # Yield recipe details update
-            if updated_recipes:
-                print(f"\n5. Sending {len(updated_recipes)} recipe details to client...")
-                logger.info(f"Sending {len(updated_recipes)} recipe details updates")
-                yield "data: " + json.dumps({"recipes": updated_recipes}) + "\n\n"
-                print("   ✓ Recipe details sent")
-
-            # 3) Process images as they complete
-            if image_tasks:
-                print(f"\n=== Processing {len(image_tasks)} Image Tasks ===")
-                logger.info(f"Processing {len(image_tasks)} image tasks")
-                pending = set(image_tasks)
-                while pending:
-                    print(f"\n6. Waiting for next image... ({len(pending)} remaining)")
+                # Process completed tasks
+                updated_recipes = []
+                for task in done:
                     try:
-                        done, pending_set = await asyncio.wait(
-                            [task for _, task in pending],
-                            return_when=asyncio.FIRST_COMPLETED,
-                            timeout=30
-                        )
+                        result = await task
                         
-                        # Update pending set before processing to avoid race conditions
-                        pending = {(rid, task) for rid, task in pending if task not in done}
+                        # Find which task this was
+                        image_task = next((rid for rid, t in image_tasks if t == task), None)
+                        detail_task = next((rid for rid, t in detail_tasks if t == task), None)
                         
-                        # Process completed images
-                        updated_recipes = []
-                        for task in done:
-                            try:
-                                # Find the corresponding recipe_id
-                                recipe_id = next(rid for rid, t in image_tasks if t == task)
-                                try:
-                                    print(f"   Processing image for recipe ID: {recipe_id}")
-                                    logger.info(f"Processing completed image task for recipe {recipe_id}")
-                                    image_data = await asyncio.wait_for(task, timeout=5.0)
-                                    if recipe_id in recipes_by_id:
-                                        recipe = recipes_by_id[recipe_id]
-                                        if image_data:
-                                            print(f"   Optimizing image for: {recipe['title']}")
-                                            logger.info(f"Optimizing image for recipe {recipe['title']}")
-                                            optimized_image = RecipeService._decode_and_optimize_image(image_data)
-                                            recipe['image'] = optimized_image
-                                        recipe['image_loading'] = False
-                                        updated_recipes.append(recipe)
-                                        processed_recipes.add(recipe_id)  # Mark recipe as fully processed
-                                        print(f"   ✓ Successfully updated image for: {recipe['title']}")
-                                        logger.info(f"Successfully updated image for recipe {recipe['title']}")
-                                except asyncio.TimeoutError:
-                                    print(f"   ✗ Timeout processing image for recipe {recipe_id}")
-                                    logger.error(f"Timeout processing image for recipe {recipe_id}")
-                                    if recipe_id in recipes_by_id:
-                                        recipe = recipes_by_id[recipe_id]
-                                        recipe['image'] = None
-                                        recipe['image_loading'] = False
-                                        updated_recipes.append(recipe)
-                                        processed_recipes.add(recipe_id)  # Mark as processed even if timeout
-                            except Exception as e:
-                                print(f"   ✗ Error processing image task: {str(e)}")
-                                logger.error(f"Error processing image task: {str(e)}")
-                                continue
-
-                        # Yield the updated recipes for the front-end
-                        if updated_recipes:
-                            print(f"\n7. Sending {len(updated_recipes)} recipe image updates to client...")
-                            logger.info(f"Sending {len(updated_recipes)} recipe image updates")
-                            yield "data: " + json.dumps({"recipes": updated_recipes}) + "\n\n"
-                            print("   ✓ Image updates sent")
-
-                    except asyncio.TimeoutError:
-                        # Handle timeout by marking remaining recipes as failed
-                        print("\n   ✗ Timeout waiting for image tasks")
-                        logger.warning("Timeout waiting for image tasks")
-                        updated_recipes = []
-                        for rid, task in pending:
+                        if image_task is not None:
+                            # This was an image task
+                            rid = image_task
                             if rid in recipes_by_id:
                                 recipe = recipes_by_id[rid]
-                                recipe['image'] = None
+                                if result:
+                                    print(f"   Optimizing image for: {recipe['title']}")
+                                    optimized_image = RecipeService._decode_and_optimize_image(result)
+                                    recipe['image'] = optimized_image
+                                    print(f"   ✓ Image optimized for: {recipe['title']}")
+                                else:
+                                    print(f"   ✗ No image data received for: {recipe['title']}")
                                 recipe['image_loading'] = False
                                 updated_recipes.append(recipe)
-                                processed_recipes.add(rid)  # Mark as processed even if timeout
-                                print(f"   Marking recipe {recipe['title']} as failed due to timeout")
-                        if updated_recipes:
-                            print(f"\n8. Sending {len(updated_recipes)} failed image updates due to timeout...")
-                            logger.info(f"Sending {len(updated_recipes)} failed image updates due to timeout")
-                            yield "data: " + json.dumps({"recipes": updated_recipes}) + "\n\n"
-                            print("   ✓ Failed updates sent")
-                        break
+                                print(f"   ✓ Successfully updated image for: {recipe['title']}")
+                        
+                        elif detail_task is not None:
+                            # This was a recipe details task
+                            rid = detail_task
+                            if result and rid in recipes_by_id:
+                                recipe = recipes_by_id[rid]
+                                recipe.update({
+                                    'ingredients': result.get('ingredients', []),
+                                    'instructions': result.get('instructions', [])
+                                })
+                                updated_recipes.append(recipe)
+                                processed_recipes.add(rid)
+                                print(f"   ✓ Successfully updated recipe details: {recipe['title']}")
+                    
+                    except Exception as e:
+                        print(f"   ✗ Error processing task: {str(e)}")
+                        logger.error(f"Error processing task: {str(e)}")
+                        continue
 
-            # Only complete the stream when all recipes have been processed
-            if len(processed_recipes) == total_recipes:
-                print("\n=== Recipe Stream Completed ===")
-                logger.info("Recipe stream completed successfully")
-                yield "data: " + json.dumps({"done": True}) + "\n\n"
-                print("✓ Final completion message sent")
-            else:
-                print(f"\n✗ Stream incomplete: Processed {len(processed_recipes)}/{total_recipes} recipes")
-                logger.error(f"Stream incomplete: Only processed {len(processed_recipes)}/{total_recipes} recipes")
-                yield "data: " + json.dumps({'error': 'Not all recipes were processed'}) + "\n\n"
+                # Send updates if we have any
+                if updated_recipes:
+                    print(f"   Sending {len(updated_recipes)} recipe updates to client...")
+                    yield "data: " + json.dumps({"recipes": updated_recipes}) + "\n\n"
+                    print("   ✓ Updates sent")
+
+            # Send completion message
+            print("\n=== Recipe Stream Completed ===")
+            logger.info("Recipe stream completed successfully")
+            yield "data: " + json.dumps({"done": True}) + "\n\n"
+            print("✓ Final completion message sent")
 
         except Exception as e:
             print(f"\n✗ Error in recipe stream: {str(e)}")
@@ -242,24 +187,17 @@ def stream_recipe_updates(request):
 
     def iterator():
         """Convert async generator to sync iterator."""
-        print("\n=== Starting Iterator Event Loop ===")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        agen = event_stream_async()
         try:
-            print("1. Creating async generator...")
-            agen = event_stream_async()
             while True:
                 try:
-                    print("2. Waiting for next async item...")
                     yield loop.run_until_complete(agen.__anext__())
-                    print("   ✓ Item yielded to client")
                 except StopAsyncIteration:
-                    print("3. Async generator completed")
                     break
         finally:
-            print("4. Closing event loop")
             loop.close()
-            print("=== Iterator Complete ===\n")
 
     return StreamingHttpResponse(
         streaming_content=iterator(),

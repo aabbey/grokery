@@ -48,9 +48,10 @@ class RecipeService:
                     "properties": {
                         "id": {"type": "integer"},
                         "title": {"type": "string"},
-                        "description": {"type": "string"}
+                        "description": {"type": "string"},
+                        "visual_description": {"type": "string"}
                     },
-                    "required": ["id", "title", "description"]
+                    "required": ["id", "title", "description", "visual_description"]
                 }
             }
         },
@@ -77,6 +78,9 @@ class RecipeService:
     }
 
     _http_client = None
+    _recipe_templates_cache = None
+    _recipe_templates_generating = False
+    _recipe_templates_event = None
 
     @classmethod
     async def _get_http_client(cls) -> aiohttp.ClientSession:
@@ -91,6 +95,7 @@ class RecipeService:
         if cls._http_client:
             await cls._http_client.close()
             cls._http_client = None
+        cls._recipe_templates_cache = None
         await LLMService.cleanup()
 
     @staticmethod
@@ -124,7 +129,7 @@ class RecipeService:
             return ''
 
     @classmethod
-    async def _generate_recipe_image(cls, recipe_text: str) -> str:
+    async def _generate_recipe_image(cls, recipe_text: str, visual_description: str) -> str:
         """Generate an image for a recipe using GetImg API."""
         url = "https://api.getimg.ai/v1/flux-schnell/text-to-image"
         
@@ -138,7 +143,7 @@ class RecipeService:
         logger.info(f"Generating image for recipe: {recipe_text[:100]}...")
         
         payload = {
-            "prompt": f"A realistic, appetizing photo of the following recipe after completion: {recipe_text}",
+            "prompt": f"A professional food photography shot of: {visual_description}. The dish is: {recipe_text}. Photorealistic, high-quality food photography, soft natural lighting, shallow depth of field.",
             "width": 256,
             "height": 256,
             "response_format": "b64",
@@ -182,7 +187,7 @@ class RecipeService:
         if recipe_id in cls._processing_recipes:
             print(f"[RecipeService] Skipping duplicate processing for recipe {recipe_template['title']}")
             logger.info(f"Skipping duplicate processing for recipe {recipe_template['title']}")
-            return None, None
+            return None
         
         cls._processing_recipes.add(recipe_id)
         
@@ -227,24 +232,16 @@ class RecipeService:
             
             print(f"[RecipeService] ✓ Received recipe details from LLM")
             
-            # Create initial result without image
+            # Create result
             result = {
                 **recipe_template,
                 'ingredients': details.get('ingredients', []),
-                'instructions': details.get('instructions', []),
-                'image': None,  # Initially no image
-                'image_loading': True  # Indicate image is loading
+                'instructions': details.get('instructions', [])
             }
             
-            # Start image generation in background
-            recipe_text = f"{recipe_template['title']} - {recipe_template['description']}"
-            print(f"[RecipeService] Starting image generation for {recipe_template['title']}...")
-            image_task = asyncio.create_task(cls._generate_recipe_image(recipe_text))
-            
-            # Return initial result immediately
-            print(f"[RecipeService] ✓ Returning initial recipe details for {recipe_template['title']}")
-            logger.info(f"Returning initial recipe details for {recipe_template['title']}")
-            return result, image_task
+            print(f"[RecipeService] ✓ Returning recipe details for {recipe_template['title']}")
+            logger.info(f"Returning recipe details for {recipe_template['title']}")
+            return result
 
         except Exception as e:
             print(f"[RecipeService] ✗ Error getting recipe details for {recipe_template['title']}: {str(e)}")
@@ -256,29 +253,59 @@ class RecipeService:
             print(f"[RecipeService] Removed {recipe_template['title']} from processing set")
 
     @classmethod
+    async def _get_generation_event(cls):
+        """Get or create the generation event."""
+        if cls._recipe_templates_event is None:
+            cls._recipe_templates_event = asyncio.Event()
+            cls._recipe_templates_event.set()  # Initially not generating
+        return cls._recipe_templates_event
+
+    @classmethod
     async def get_recipe_templates(cls):
         """Get basic recipe templates for the week."""
-        print("\n[RecipeService] Generating recipe templates...")
-        template_prompt = """Generate 7 easy-to-make, nutritious, and cost-effective meals for the week. 
-        For each recipe, provide just:
-        1. Title
-        2. Brief description
+        # Return cache if available
+        if cls._recipe_templates_cache is not None:
+            print("[RecipeService] Returning cached recipe templates")
+            return cls._recipe_templates_cache
+
+        # Get the event
+        event = await cls._get_generation_event()
         
-        Return your response as a JSON object with this exact structure (no markdown formatting):
-        {
-            "recipes": [
-                {
-                    "id": 1,
-                    "title": "Recipe Title",
-                    "description": "Brief description"
-                },
-                ...
-            ]
-        }
-        
-        Make sure to include exactly 7 recipes and return only the JSON object, no other text."""
+        # Wait if templates are being generated
+        if not event.is_set():
+            print("[RecipeService] Waiting for templates to be generated...")
+            await event.wait()
+            if cls._recipe_templates_cache is not None:
+                print("[RecipeService] Returning cached recipe templates (after wait)")
+                return cls._recipe_templates_cache
 
         try:
+            # Mark as generating
+            event.clear()
+            cls._recipe_templates_generating = True
+            
+            print("\n[RecipeService] Generating recipe templates...")
+            template_prompt = """Generate 7 easy-to-make, nutritious, and cost-effective meals for the week. 
+            For each recipe, provide:
+            1. Title: The name of the dish
+            2. Description: A very brief 1-sentence description of the dish
+            3. Visual Description: A detailed description of how the completed dish should look, focusing on colors, textures, and presentation
+            
+            Return your response as a JSON object with this exact structure (no markdown formatting):
+            {
+                "recipes": [
+                    {
+                        "id": 1,
+                        "title": "Recipe Title",
+                        "description": "One sentence description",
+                        "visual_description": "Detailed visual description of the completed dish"
+                    },
+                    ...
+                ]
+            }
+            
+            Make sure to include exactly 7 recipes and return only the JSON object, no other text."""
+
             print("[RecipeService] Requesting LLM completion for templates...")
             templates_data = await LLMService.get_completion(
                 prompt=template_prompt,
@@ -293,11 +320,18 @@ class RecipeService:
             
             recipes = templates_data.get('recipes', [])
             print(f"[RecipeService] ✓ Generated {len(recipes)} recipe templates")
+            
+            # Cache the templates
+            cls._recipe_templates_cache = recipes
             return recipes
         except Exception as e:
             print(f"[RecipeService] ✗ Error getting recipe templates: {str(e)}")
             logger.error(f"Error getting recipe templates: {str(e)}")
             raise
+        finally:
+            # Clear generating flag and set event
+            cls._recipe_templates_generating = False
+            event.set()
 
     @classmethod
     async def get_all_recipe_details(cls, recipe_templates):
@@ -316,12 +350,12 @@ class RecipeService:
         ]
         
         # Wait for all recipe details to complete
-        print(f"[RecipeService] Waiting for {len(detail_tasks)} recipe detail tasks to complete...")
+        print(f"[RecipeService] Waiting for {len(detail_tasks)} recipe details to complete...")
         results = await asyncio.gather(*detail_tasks, return_exceptions=True)
         
         recipes = []
         
-        # Process results, but don't wait for images
+        # Process results
         for template, result in zip(recipe_templates, results):
             if isinstance(result, Exception):
                 print(f"[RecipeService] ✗ Failed to get details for recipe {template['title']}: {str(result)}")
@@ -329,12 +363,11 @@ class RecipeService:
                 continue
             
             if result is None:
+                print(f"[RecipeService] ✗ No result for recipe {template['title']}")
                 continue
                 
-            recipe, _ = result  # Ignore image task for grocery list
-            if recipe is not None:
-                recipes.append(recipe)
-                print(f"[RecipeService] ✓ Processed recipe: {recipe['title']}")
+            recipes.append(result)
+            print(f"[RecipeService] ✓ Processed recipe: {result['title']}")
 
         print(f"[RecipeService] ✓ Successfully processed {len(recipes)} recipes")
         logger.info(f"Successfully processed {len(recipes)} recipes")

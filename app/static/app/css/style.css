@@ -44,15 +44,33 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(120deg, #f6f7fb 0%, #e9ecf3 100%);
+    background: linear-gradient(-45deg,
+        var(--background) 0%,
+        #e8edf7 25%,
+        #dae3f3 50%,
+        #ccd9ef 75%,
+        var(--background) 100%);
     z-index: -1;
-    animation: gradientShift 15s ease infinite;
+    background-size: 300% 300%;
+    animation: gradientShift 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes gradientShift {
-    0% { opacity: 0.8; }
-    50% { opacity: 1; }
-    100% { opacity: 0.8; }
+    0% {
+        background-position: 0% 0%;
+    }
+    25% {
+        background-position: 100% 0%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    75% {
+        background-position: 0% 100%;
+    }
+    100% {
+        background-position: 0% 0%;
+    }
 }
 
 .centered-layout {
@@ -90,19 +108,34 @@ h1 {
     margin-bottom: 2rem;
 }
 
+.preferences {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .preference {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 1.5rem;
-    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
     border-radius: 8px;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
 }
 
 .preference:hover {
     background-color: rgba(0,0,0,0.02);
+    border-color: rgba(0,0,0,0.05);
+    transform: translateX(4px);
 }
+
+/* Customize plus button colors for different preferences */
+.preferences .preference:nth-of-type(1) .plus-btn { background: var(--healthy); }
+.preferences .preference:nth-of-type(2) .plus-btn { background: var(--cheap); }
+.preferences .preference:nth-of-type(3) .plus-btn { background: var(--tasty); }
+.preferences .preference:nth-of-type(4) .plus-btn { background: var(--simple); }
 
 .plus-btn {
     background: var(--accent);
@@ -113,15 +146,33 @@ h1 {
     border-radius: 8px;
     font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
 
 .plus-btn:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow);
+}
+
+.plus-btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.plus-btn:hover:before {
+    opacity: 1;
 }
 
 .label {
@@ -146,9 +197,14 @@ h1 {
 
 .line.active {
     background: var(--accent);
-    box-shadow: 0 0 8px rgba(56, 246, 53, 0.5);
-    /* Lighter blue and added glow effect */
-    background: #59dd50;
+    box-shadow: 0 0 12px rgba(52, 152, 219, 0.3);
+    animation: lineGlow 2s ease-in-out infinite;
+}
+
+@keyframes lineGlow {
+    0% { box-shadow: 0 0 8px rgba(52, 152, 219, 0.3); }
+    50% { box-shadow: 0 0 12px rgba(52, 152, 219, 0.5); }
+    100% { box-shadow: 0 0 8px rgba(52, 152, 219, 0.3); }
 }
 
 .settings-section {
@@ -207,18 +263,36 @@ h1 {
 }
 
 .recipe-item {
-    background: #fff;
+    background: var(--surface);
     border-radius: 12px;
     padding: 0;
     margin-bottom: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+    position: relative;
 }
 
 .recipe-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-large);
+}
+
+.recipe-item:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.recipe-item:hover:before {
+    opacity: 1;
 }
 
 .recipe-image {
@@ -268,14 +342,24 @@ h1 {
 }
 
 .grocery-list {
-    cursor: pointer;
-    transition: all 0.2s ease;
     background: var(--surface);
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow);
     position: relative;
     z-index: 1;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.grocery-list:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-tertiary);
+    border-radius: 4px 4px 0 0;
 }
 
 .grocery-list:hover {

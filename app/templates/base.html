@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Groc Meal Planner{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'app/css/style.css' %}">
+    <title>{% block title %}Grokery Meal Planner{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'app/css/style.css' %}?v={% now 'U' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
@@ -15,7 +15,7 @@
     <div class="top-bar">
         <a href="/" class="logo">
             <div class="logo-container">
-                <h1>Groc</h1>
+                <h1>Grokery</h1>
                 <span class="title-extension">meal planner</span>
             </div>
         </a>

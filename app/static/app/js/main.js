@@ -61,6 +61,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Settings dropdown functionality
+    const settingsDropdown = document.querySelector('.settings-dropdown');
+    const settingsBtn = document.querySelector('.settings-btn');
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsDropdown.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!settingsDropdown.contains(e.target)) {
+                settingsDropdown.classList.remove('active');
+            }
+        });
+    }
+
+    // Add rebuild recipes functionality
+    const rebuildButton = document.querySelector('.rebuild-recipes');
+    if (rebuildButton) {
+        rebuildButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Reload the page to trigger recipe rebuild
+            window.location.reload();
+        });
+    }
 });
 
 function setupGroceryListHandlers(overlay) {

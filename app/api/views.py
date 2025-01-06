@@ -11,6 +11,7 @@ import traceback
 
 from app.services.recipe_service import RecipeService
 from app.services.grocery_service import GroceryService
+from app.models import UserCurrentRecipes, UserGroceryList
 
 logger = logging.getLogger(__name__)
 
@@ -50,71 +51,71 @@ def get_grocery_item_details(request, item_id):
             'message': str(e)
         }, status=400)
 
-@login_required(login_url='account_login')
-async def get_simulated_recipe_data(request):
-    async def generate_response():
-        try:
-            # Stage 1: Get recipe templates
-            recipe_templates = await RecipeService.get_recipe_templates()
-            logger.info("Recipe templates generated successfully")
+# @login_required(login_url='account_login')
+# async def get_simulated_recipe_data(request):
+#     async def generate_response():
+#         try:
+#             # Stage 1: Get recipe templates
+#             recipe_templates = await RecipeService.get_recipe_templates()
+#             logger.info("Recipe templates generated successfully")
             
-            yield json.dumps({
-                'status': 'templates',
-                'recipes': recipe_templates,
-                'grocery_list': []
-            }, cls=DjangoJSONEncoder) + '\n'
+#             yield json.dumps({
+#                 'status': 'templates',
+#                 'recipes': recipe_templates,
+#                 'grocery_list': []
+#             }, cls=DjangoJSONEncoder) + '\n'
             
-            # Stage 2: Get detailed recipes
-            try:
-                detailed_recipes = await RecipeService.get_all_recipe_details(recipe_templates)
-                logger.info("Detailed recipes generated successfully")
+#             # Stage 2: Get detailed recipes
+#             try:
+#                 detailed_recipes = await RecipeService.get_all_recipe_details(recipe_templates)
+#                 logger.info("Detailed recipes generated successfully")
                 
-                yield json.dumps({
-                    'status': 'details',
-                    'recipes': detailed_recipes,
-                    'grocery_list': []
-                }, cls=DjangoJSONEncoder) + '\n'
-            except Exception as e:
-                logger.error(f"Error generating detailed recipes: {str(e)}\n{traceback.format_exc()}")
-                yield json.dumps({
-                    'status': 'error',
-                    'message': 'Error generating detailed recipes'
-                }) + '\n'
-                return
+#                 yield json.dumps({
+#                     'status': 'details',
+#                     'recipes': detailed_recipes,
+#                     'grocery_list': []
+#                 }, cls=DjangoJSONEncoder) + '\n'
+#             except Exception as e:
+#                 logger.error(f"Error generating detailed recipes: {str(e)}\n{traceback.format_exc()}")
+#                 yield json.dumps({
+#                     'status': 'error',
+#                     'message': 'Error generating detailed recipes'
+#                 }) + '\n'
+#                 return
             
-            # Stage 3: Generate grocery list
-            try:
-                grocery_list = await RecipeService.generate_grocery_list(detailed_recipes)
-                logger.info("Grocery list generated successfully")
+#             # Stage 3: Generate grocery list
+#             try:
+#                 grocery_list = await RecipeService.generate_grocery_list(detailed_recipes)
+#                 logger.info("Grocery list generated successfully")
                 
-                yield json.dumps({
-                    'status': 'complete',
-                    'recipes': detailed_recipes,
-                    'grocery_list': grocery_list
-                }, cls=DjangoJSONEncoder) + '\n'
-            except Exception as e:
-                logger.error(f"Error generating grocery list: {str(e)}\n{traceback.format_exc()}")
-                yield json.dumps({
-                    'status': 'error',
-                    'message': 'Error generating grocery list'
-                }) + '\n'
+#                 yield json.dumps({
+#                     'status': 'complete',
+#                     'recipes': detailed_recipes,
+#                     'grocery_list': grocery_list
+#                 }, cls=DjangoJSONEncoder) + '\n'
+#             except Exception as e:
+#                 logger.error(f"Error generating grocery list: {str(e)}\n{traceback.format_exc()}")
+#                 yield json.dumps({
+#                     'status': 'error',
+#                     'message': 'Error generating grocery list'
+#                 }) + '\n'
                 
-        except Exception as e:
-            logger.error(f"Error in recipe data generation: {str(e)}\n{traceback.format_exc()}")
-            yield json.dumps({
-                'status': 'error',
-                'message': 'Error generating recipe data'
-            }) + '\n'
+#         except Exception as e:
+#             logger.error(f"Error in recipe data generation: {str(e)}\n{traceback.format_exc()}")
+#             yield json.dumps({
+#                 'status': 'error',
+#                 'message': 'Error generating recipe data'
+#             }) + '\n'
 
-    # Convert async generator to sync iterator for StreamingHttpResponse
-    async def async_iter():
-        async for chunk in generate_response():
-            yield chunk
+#     # Convert async generator to sync iterator for StreamingHttpResponse
+#     async def async_iter():
+#         async for chunk in generate_response():
+#             yield chunk
 
-    return StreamingHttpResponse(
-        streaming_content=async_iter(),
-        content_type='application/x-ndjson'
-    )
+#     return StreamingHttpResponse(
+#         streaming_content=async_iter(),
+#         content_type='application/x-ndjson'
+#     )
 
 @login_required(login_url='account_login')
 async def stream_recipe_generation(request):
@@ -214,13 +215,25 @@ async def stream_recipe_generation(request):
                 if len(completed_details) == len(recipe_templates) and not any(t for rid, t in detail_tasks if not t.done()):
                     try:
                         grocery_list = await RecipeService.generate_grocery_list(completed_details)
+                        
+                        # Save recipes and grocery list to database
+                        await sync_to_async(UserCurrentRecipes.objects.update_or_create)(
+                            user=request.user,
+                            defaults={'recipes': completed_details}
+                        )
+                        
+                        await sync_to_async(UserGroceryList.objects.update_or_create)(
+                            user=request.user,
+                            defaults={'items': grocery_list}
+                        )
+                        
                         yield "data: " + json.dumps({
                             "type": "grocery_list",
                             "grocery_list": grocery_list
                         }) + "\n\n"
-                        await asyncio.sleep(0)  # Allow the event to be sent immediately
+                        await asyncio.sleep(0)
                     except Exception as e:
-                        logger.error(f"Error generating grocery list: {str(e)}")
+                        logger.error(f"Error generating/saving grocery list: {str(e)}")
             
             # Send completion message
             yield "data: " + json.dumps({"type": "complete"}) + "\n\n"

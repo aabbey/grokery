@@ -13,11 +13,20 @@
                 </svg>
             </a>
             <h1>Your Recipes</h1>
-            <a href="#" class="settings">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 20v-8M12 8V4M6 20v-4M6 12V4M18 20V12M18 8V4"/>
-                </svg>
-            </a>
+            <div class="settings-dropdown">
+                <button class="settings-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18"/>
+                    </svg>
+                </button>
+                <div class="settings-menu">
+                    <a href="#" class="settings-item rebuild-recipes">Rebuild Recipes</a>
+                    <a href="#" class="settings-item">Preferences</a>
+                    <a href="#" class="settings-item">Help</a>
+                    <div class="settings-divider"></div>
+                    <a href="{% url 'account_logout' %}" class="settings-item settings-item-danger">Sign Out</a>
+                </div>
+            </div>
         </header>
 
         <main class="split-layout">

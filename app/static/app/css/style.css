@@ -967,4 +967,71 @@ header h1 {
     flex-direction: column;
     gap: 0.5rem;
 }
+
+/* Settings Dropdown Styles */
+.settings-dropdown {
+    position: relative;
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--text);
+    transition: background-color 0.2s ease;
+}
+
+.settings-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.settings-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: var(--shadow-large);
+    min-width: 180px;
+    padding: 8px 0;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+}
+
+.settings-dropdown.active .settings-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.settings-item {
+    display: block;
+    padding: 8px 16px;
+    color: var(--text);
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.settings-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.settings-divider {
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin: 8px 0;
+}
+
+.settings-item-danger {
+    color: #dc3545;
+}
+
+.settings-item-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
   

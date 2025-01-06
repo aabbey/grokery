@@ -22,3 +22,19 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'auth_user'
+
+class UserCurrentRecipes(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='current_recipes')
+    recipes = models.JSONField(default=list, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_current_recipes'
+
+class UserGroceryList(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='grocery_list')
+    items = models.JSONField(default=list, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_grocery_lists'

@@ -83,10 +83,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add rebuild recipes functionality
     const rebuildButton = document.querySelector('.rebuild-recipes');
     if (rebuildButton) {
-        rebuildButton.addEventListener('click', (e) => {
+        rebuildButton.addEventListener('click', async (e) => {
             e.preventDefault();
-            // Reload the page to trigger recipe rebuild
-            window.location.reload();
+            
+            try {
+                // Fetch the preferences modal content
+                const response = await fetch('/preferences-modal/');  // You'll need to create this endpoint
+                const modalHtml = await response.text();
+                
+                // Insert modal into the page
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                
+                // Get modal elements
+                const modal = document.querySelector('.preferences-modal');
+                const closeBtn = modal.querySelector('.close-modal-btn');
+                const rebuildBtn = modal.querySelector('#rebuildWithPreferences');
+                
+                // Setup close button
+                closeBtn.addEventListener('click', () => {
+                    modal.remove();
+                });
+                
+                // Setup click outside to close
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // Setup rebuild button
+                rebuildBtn.addEventListener('click', () => {
+                    window.location.reload();
+                });
+                
+                // Setup plus buttons in modal
+                setupPlusButtons(modal);
+                
+            } catch (error) {
+                console.error('Error loading preferences modal:', error);
+            }
         });
     }
 });
@@ -207,5 +242,38 @@ function getCsrfToken() {
         .find(row => row.startsWith('csrftoken='))
         ?.split('=')[1];
     return cookieValue;
+}
+
+// Helper function to setup plus buttons
+function setupPlusButtons(container) {
+    const plusButtons = container.querySelectorAll('.plus-btn');
+    
+    plusButtons.forEach(btn => {
+        const targetId = btn.getAttribute('data-target');
+        const lineContainer = document.getElementById(targetId);
+        if (!lineContainer) return;
+
+        // Initialize state
+        btn.setAttribute('data-state', '0');
+        
+        btn.addEventListener('click', () => {
+            const lines = lineContainer.querySelectorAll('.line');
+            const activeLines = lineContainer.querySelectorAll('.line.active');
+    
+            // If all lines are active, reset them
+            if (activeLines.length === lines.length) {
+                lines.forEach(line => line.classList.remove('active'));
+                btn.setAttribute('data-state', '0');
+                return;
+            }
+    
+            // Otherwise, activate the next line
+            const nextIndex = activeLines.length;
+            if (nextIndex < lines.length) {
+                lines[nextIndex].classList.add('active');
+                btn.setAttribute('data-state', (nextIndex + 1).toString());
+            }
+        });
+    });
 }
   

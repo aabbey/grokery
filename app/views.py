@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from app.services.auth_service import AuthService
+from django.template.loader import render_to_string
+from django.http import HttpResponse
 
 def hello(request):
     return render(request, "hello.html")
@@ -27,3 +29,7 @@ def guest_login(request):
     # If authentication fails, delete the created user and show an error
     guest_user.delete()
     return redirect('landing')
+
+def preferences_modal(request):
+    html = render_to_string('preferences_modal.html')
+    return HttpResponse(html)

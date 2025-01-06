@@ -2,6 +2,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from app.services.auth_service import AuthService
 
+def hello(request):
+    return render(request, "hello.html")
+
+def landing(request):
+    if request.user.is_authenticated:
+        return redirect('start')
+    return render(request, "landing.html")
+
 @login_required(login_url='account_login')
 def start(request):
     return render(request, "start.html")

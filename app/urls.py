@@ -6,8 +6,6 @@ from . import views
 urlpatterns = [
     # Redirect root to recipe page
     path('', RedirectView.as_view(url='/recipes/', permanent=False), name='index'),
-    # Redirect old URL to new URL
-    path('recipe/', RedirectView.as_view(url='/recipes/', permanent=True)),
     path('recipes/', views.recipe_page, name='recipe_page'),
     
     # Auth endpoints

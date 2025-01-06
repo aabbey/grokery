@@ -79,51 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // Add rebuild recipes functionality
-    const rebuildButton = document.querySelector('.rebuild-recipes');
-    if (rebuildButton) {
-        rebuildButton.addEventListener('click', async (e) => {
-            e.preventDefault();
-            
-            try {
-                // Fetch the preferences modal content
-                const response = await fetch('/preferences-modal/');  // You'll need to create this endpoint
-                const modalHtml = await response.text();
-                
-                // Insert modal into the page
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                
-                // Get modal elements
-                const modal = document.querySelector('.preferences-modal');
-                const closeBtn = modal.querySelector('.close-modal-btn');
-                const rebuildBtn = modal.querySelector('#rebuildWithPreferences');
-                
-                // Setup close button
-                closeBtn.addEventListener('click', () => {
-                    modal.remove();
-                });
-                
-                // Setup click outside to close
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
-                    }
-                });
-                
-                // Setup rebuild button
-                rebuildBtn.addEventListener('click', () => {
-                    window.location.reload();
-                });
-                
-                // Setup plus buttons in modal
-                setupPlusButtons(modal);
-                
-            } catch (error) {
-                console.error('Error loading preferences modal:', error);
-            }
-        });
-    }
 });
 
 function setupGroceryListHandlers(overlay) {
@@ -275,5 +230,47 @@ function setupPlusButtons(container) {
             }
         });
     });
+}
+
+// Helper function to show preferences modal
+async function showPreferencesModal() {
+    try {
+        // Fetch the preferences modal content
+        const response = await fetch('/preferences-modal/');
+        const modalHtml = await response.text();
+        
+        // Insert modal into the page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Get modal elements
+        const modal = document.querySelector('.preferences-modal');
+        const closeBtn = modal.querySelector('.close-modal-btn');
+        const rebuildBtn = modal.querySelector('#rebuildWithPreferences');
+        
+        // Setup close button
+        closeBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+        
+        // Setup click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Setup rebuild button
+        rebuildBtn.addEventListener('click', () => {
+            modal.remove();
+            // Start recipe generation when rebuild button is clicked
+            setupRecipeStream();
+        });
+        
+        // Setup plus buttons in modal
+        setupPlusButtons(modal);
+        
+    } catch (error) {
+        console.error('Error loading preferences modal:', error);
+    }
 }
   

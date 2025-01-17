@@ -158,9 +158,22 @@ async def stream_recipe_generation(request):
                         
                         # Save recipes and grocery list to database
                         logger.info("Saving recipes to database")
+                        # Include images in the saved recipes
+                        recipes_to_save = []
+                        for recipe in recipes:
+                            recipes_to_save.append({
+                                'id': recipe['id'],
+                                'title': recipe['title'],
+                                'description': recipe['description'],
+                                'visual_description': recipe['visual_description'],
+                                'ingredients': recipe['ingredients'],
+                                'instructions': recipe['instructions'],
+                                'image': recipe['image']
+                            })
+                        
                         recipes_obj, created = await sync_to_async(UserCurrentRecipes.objects.update_or_create)(
                             user=request.user,
-                            defaults={'recipes': completed_details}
+                            defaults={'recipes': recipes_to_save}
                         )
                         logger.info(f"{'Created' if created else 'Updated'} recipes in database")
                         

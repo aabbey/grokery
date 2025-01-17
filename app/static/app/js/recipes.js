@@ -191,8 +191,6 @@ function setupRecipeStream() {
                     // All processing is complete
                     console.log('Recipe generation complete');
                     eventSource.close();
-                    // Reload the page to show the updated recipes and grocery list
-                    window.location.reload();
                     break;
 
                 case 'error':

@@ -51,6 +51,33 @@ def get_grocery_item_details(request, item_id):
             'message': str(e)
         }, status=400)
 
+@login_required(login_url='account_login')
+def get_grocery_list(request):
+    try:
+        # Get the user's grocery list
+        grocery_list = UserGroceryList.objects.get(user=request.user).items
+        
+        # Render the grocery list template
+        html = render_to_string('grocery_list_expanded.html', {
+            'grocery_items': grocery_list
+        })
+        
+        return JsonResponse({
+            'status': 'success',
+            'html': html
+        })
+    except UserGroceryList.DoesNotExist:
+        return JsonResponse({
+            'status': 'success',
+            'html': render_to_string('grocery_list_expanded.html', {
+                'grocery_items': []
+            })
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
 
 @login_required(login_url='account_login')
 async def stream_recipe_generation(request):

@@ -13,6 +13,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/recipes/generate/', api_views.stream_recipe_generation, name='stream_recipe_generation'),
+    path('api/grocery-list/', api_views.get_grocery_list, name='get_grocery_list'),
     path('api/grocery-item/<int:item_id>/', api_views.get_grocery_item_details, name='get_grocery_item_details'),
     path('api/grocery-item/<int:item_id>/remove/', api_views.remove_grocery_item, name='remove_grocery_item'),
     path('preferences-modal/', views.preferences_modal, name='preferences_modal'),

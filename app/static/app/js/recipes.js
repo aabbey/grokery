@@ -210,6 +210,21 @@ function setupRecipeStream() {
     // Store recipes globally for click handling
     window.recipes = [];
     
+    // Show loading states
+    const recipesContent = document.getElementById('recipesContent');
+    const recipesLoading = document.getElementById('recipesLoading');
+    const recipesEmpty = document.getElementById('recipesEmpty');
+    const groceryListContent = document.getElementById('groceryListContent');
+    const groceryListLoading = document.getElementById('groceryListLoading');
+    const groceryListEmpty = document.getElementById('groceryListEmpty');
+    
+    if (recipesContent) recipesContent.style.display = 'none';
+    if (recipesLoading) recipesLoading.style.display = 'block';
+    if (recipesEmpty) recipesEmpty.style.display = 'none';
+    if (groceryListContent) groceryListContent.style.display = 'none';
+    if (groceryListLoading) groceryListLoading.style.display = 'block';
+    if (groceryListEmpty) groceryListEmpty.style.display = 'none';
+    
     eventSource.onmessage = function(event) {
         try {
             const data = JSON.parse(event.data);
@@ -220,22 +235,65 @@ function setupRecipeStream() {
                     console.log('Received recipe templates:', data.recipes);
                     // Store recipes globally
                     window.recipes = data.recipes;
+                    
+                    // Create initial recipe containers with loading states
+                    if (recipesContent) {
+                        recipesContent.style.display = 'block';
+                        recipesContent.innerHTML = data.recipes.map(recipe => `
+                            <div class="recipe-item" data-recipe-id="${recipe.id}">
+                                <div class="recipe-image">
+                                    <div class="loading-spinner"></div>
+                                </div>
+                                <div class="recipe-content">
+                                    <h3>${recipe.title}</h3>
+                                    <p>${recipe.description}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                    if (recipesLoading) recipesLoading.style.display = 'none';
                     break;
                     
                 case 'updates':
                     console.log('Received recipe updates:', data.recipes);
-                    // Update global recipes
+                    // Update global recipes and UI
                     data.recipes.forEach(recipe => {
                         const index = window.recipes.findIndex(r => r.id === recipe.id);
                         if (index !== -1) {
                             window.recipes[index] = recipe;
+                            updateRecipe(recipe);
                         }
                     });
+                    break;
+                    
+                case 'grocery_list':
+                    console.log('Recipe generation complete');
+                    // Update grocery list
+                    if (groceryListContent && data.grocery_list) {
+                        groceryListContent.style.display = 'block';
+                        groceryListContent.innerHTML = data.grocery_list
+                            .map(item => createGroceryItemHTML(item))
+                            .join('');
+                    }
+                    if (groceryListLoading) groceryListLoading.style.display = 'none';
+                    if (groceryListEmpty && (!data.grocery_list || data.grocery_list.length === 0)) {
+                        groceryListEmpty.style.display = 'block';
+                    }
+                    
+                    // Close the event source
+                    eventSource.close();
                     break;
             }
         } catch (error) {
             console.error('Error processing stream update:', error);
+            handleStreamError(error);
         }
+    };
+    
+    eventSource.onerror = function(error) {
+        console.error('EventSource error:', error);
+        handleStreamError(error);
+        eventSource.close();
     };
 }
 

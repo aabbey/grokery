@@ -1,5 +1,6 @@
 // Helper functions to create HTML
 function createRecipeTemplateHTML(recipe) {
+    console.log('Creating recipe template HTML for recipe:', recipe);
     return `
         <div class="recipe-item" data-recipe-id="${recipe.id}">
             <div class="recipe-image">
@@ -19,34 +20,106 @@ function createRecipeTemplateHTML(recipe) {
             <div class="recipe-content">
                 <h3>${recipe.title}</h3>
                 <p>${recipe.description}</p>
-                <div class="recipe-details ${recipe.ingredients?.length && recipe.instructions?.length ? '' : 'hidden'}">
-                    <button class="view-details-btn" onclick="viewRecipeDetails(${recipe.id})">
-                        View Recipe Details
-                    </button>
-                </div>
             </div>
         </div>
     `;
 }
 
 // Initialize recipe functionality
+console.log('Recipe.js loaded');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Starting recipe initialization');
+    
+    // Debug: Check if recipes exist in window
+    console.log('Current window.recipes:', window.recipes);
+    
     // Add event listeners for rebuild buttons
     const rebuildButton = document.querySelector('.rebuild-recipes');
+    console.log('Rebuild button found:', !!rebuildButton);
+    
     if (rebuildButton) {
         rebuildButton.addEventListener('click', async (e) => {
+            console.log('Rebuild button clicked');
             e.preventDefault();
             showPreferencesModal();
         });
     }
 
     const buildRecipesBtn = document.getElementById('buildRecipesBtn');
+    console.log('Build recipes button found:', !!buildRecipesBtn);
+    
     if (buildRecipesBtn) {
         buildRecipesBtn.addEventListener('click', async (e) => {
+            console.log('Build recipes button clicked');
             e.preventDefault();
             showPreferencesModal();
         });
     }
+
+    // Debug: Check for recipe items on page load
+    const recipeItems = document.querySelectorAll('.recipe-item');
+    console.log('Recipe items found on page:', recipeItems.length);
+    recipeItems.forEach((item, index) => {
+        console.log(`Recipe item ${index}:`, {
+            id: item.dataset.recipeId,
+            html: item.innerHTML.substring(0, 100) + '...' // Log first 100 chars
+        });
+    });
+
+    // Add direct click handlers to recipe items
+    recipeItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            console.log('Direct recipe item click detected:', this.dataset.recipeId);
+        });
+    });
+
+    // Add click handlers for recipe items (delegation)
+    document.addEventListener('click', function(e) {
+        console.log('Document click detected on:', e.target.tagName, e.target.className);
+        
+        const recipeItem = e.target.closest('.recipe-item');
+        console.log('Closest recipe-item:', recipeItem?.dataset?.recipeId);
+        
+        if (recipeItem) {
+            const recipeId = recipeItem.dataset.recipeId;
+            console.log('Processing click for recipe ID:', recipeId);
+            console.log('Recipe IDs available:', window.recipes.map(r => r.id));
+            
+            // Convert recipeId to number for comparison
+            const recipe = window.recipes?.find(r => r.id === parseInt(recipeId, 10));
+            console.log('Found recipe object:', recipe);
+            
+            if (recipe && recipe.ingredients && recipe.instructions) {
+                console.log('Recipe has required data, showing modal');
+                showRecipeModal(recipe);
+            } else {
+                console.log('Recipe missing required data:', {
+                    hasRecipe: !!recipe,
+                    hasIngredients: recipe?.ingredients?.length > 0,
+                    hasInstructions: recipe?.instructions?.length > 0
+                });
+                if (recipe) {
+                    console.log('Recipe details:', {
+                        id: recipe.id,
+                        title: recipe.title,
+                        hasIngredients: Array.isArray(recipe.ingredients),
+                        ingredientsLength: recipe.ingredients?.length,
+                        hasInstructions: Array.isArray(recipe.instructions),
+                        instructionsLength: recipe.instructions?.length
+                    });
+                }
+            }
+        }
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            console.log('Escape key pressed');
+            closeRecipeModal();
+        }
+    });
 });
 
 // Helper function to setup plus buttons
@@ -133,22 +206,9 @@ async function showPreferencesModal() {
 function setupRecipeStream() {
     console.log('Setting up recipe generation stream');
     const eventSource = new EventSource('/api/recipes/generate/');
-    const recipesContent = document.getElementById('recipesContent');
-    const recipesLoading = document.getElementById('recipesLoading');
-    const recipesEmpty = document.getElementById('recipesEmpty');
-    const groceryListContent = document.getElementById('groceryListContent');
-    const groceryListLoading = document.getElementById('groceryListLoading');
-    const groceryListEmpty = document.getElementById('groceryListEmpty');
-    const groceryListStatus = document.getElementById('groceryListStatus');
-    const recipesById = new Map();
     
-    // Show loading states
-    if (recipesContent) recipesContent.style.display = 'none';
-    if (recipesEmpty) recipesEmpty.style.display = 'none';
-    if (recipesLoading) recipesLoading.style.display = 'block';
-    if (groceryListContent) groceryListContent.style.display = 'none';
-    if (groceryListEmpty) groceryListEmpty.style.display = 'none';
-    if (groceryListLoading) groceryListLoading.style.display = 'block';
+    // Store recipes globally for click handling
+    window.recipes = [];
     
     eventSource.onmessage = function(event) {
         try {
@@ -157,60 +217,25 @@ function setupRecipeStream() {
 
             switch (data.type) {
                 case 'templates':
-                    // Initialize recipes with templates
-                    data.recipes.forEach(recipe => {
-                        recipesById.set(recipe.id, recipe);
-                    });
-                    recipesContent.innerHTML = Array.from(recipesById.values())
-                        .map(recipe => createRecipeTemplateHTML(recipe))
-                        .join('');
-                    recipesContent.style.display = 'block';
-                    recipesLoading.style.display = 'none';
-                    groceryListStatus.textContent = 'Generating recipe details...';
+                    console.log('Received recipe templates:', data.recipes);
+                    // Store recipes globally
+                    window.recipes = data.recipes;
                     break;
-
+                    
                 case 'updates':
-                    // Recipe updates (images or details)
+                    console.log('Received recipe updates:', data.recipes);
+                    // Update global recipes
                     data.recipes.forEach(recipe => {
-                        recipesById.set(recipe.id, recipe);
-                        updateRecipe(recipe);
+                        const index = window.recipes.findIndex(r => r.id === recipe.id);
+                        if (index !== -1) {
+                            window.recipes[index] = recipe;
+                        }
                     });
-                    break;
-
-                case 'grocery_list':
-                    // Grocery list is ready
-                    groceryListContent.innerHTML = data.grocery_list.map(item =>
-                        createGroceryItemHTML(item)
-                    ).join('');
-                    groceryListContent.style.display = 'block';
-                    groceryListLoading.style.display = 'none';
-                    groceryListStatus.textContent = 'Grocery list ready!';
-                    break;
-
-                case 'complete':
-                    // All processing is complete
-                    console.log('Recipe generation complete');
-                    eventSource.close();
-                    break;
-
-                case 'error':
-                    // Handle any errors
-                    console.error('Stream error:', data.error);
-                    handleStreamError(data.error);
-                    eventSource.close();
                     break;
             }
         } catch (error) {
             console.error('Error processing stream update:', error);
-            handleStreamError(error);
-            eventSource.close();
         }
-    };
-
-    eventSource.onerror = function(error) {
-        console.error('EventSource error:', error);
-        handleStreamError('Connection error occurred');
-        eventSource.close();
     };
 }
 
@@ -257,4 +282,77 @@ function createGroceryItemHTML(item) {
             </button>
         </li>
     `;
+}
+
+// Recipe modal functionality
+function showRecipeModal(recipe) {
+    console.log('Showing modal for recipe:', recipe.title);
+    
+    const modal = document.getElementById('recipeDetailsModal');
+    console.log('Modal element found:', !!modal);
+    
+    const modalImage = document.getElementById('modalRecipeImage');
+    const modalTitle = document.getElementById('modalRecipeTitle');
+    const modalIngredients = document.getElementById('modalRecipeIngredients');
+    const modalInstructions = document.getElementById('modalRecipeInstructions');
+    const closeBtn = modal.querySelector('.close-modal-btn');
+
+    console.log('Modal elements found:', {
+        image: !!modalImage,
+        title: !!modalTitle,
+        ingredients: !!modalIngredients,
+        instructions: !!modalInstructions,
+        closeBtn: !!closeBtn
+    });
+
+    // Set image and title
+    if (recipe.image) {
+        modalImage.src = `data:image/jpeg;base64,${recipe.image}`;
+        modalImage.alt = recipe.title;
+        modalImage.style.display = 'block';
+    } else {
+        modalImage.style.display = 'none';
+    }
+    modalTitle.textContent = recipe.title;
+
+    // Set ingredients
+    console.log('Setting ingredients:', recipe.ingredients);
+    modalIngredients.innerHTML = recipe.ingredients
+        .map(ingredient => `<li>${ingredient}</li>`)
+        .join('');
+
+    // Set instructions
+    console.log('Setting instructions:', recipe.instructions);
+    modalInstructions.innerHTML = recipe.instructions
+        .map(instruction => `<li>${instruction}</li>`)
+        .join('');
+
+    // Show modal with flex display and add active class
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    
+    // Setup close button click handler
+    closeBtn.addEventListener('click', () => {
+        console.log('Close button clicked');
+        closeRecipeModal();
+    });
+
+    // Setup click outside to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            console.log('Clicked outside modal');
+            closeRecipeModal();
+        }
+    });
+    
+    console.log('Modal display style:', modal.style.display);
+    console.log('Modal classes:', modal.className);
+}
+
+// Function to close the recipe modal
+function closeRecipeModal() {
+    console.log('Closing recipe modal');
+    const modal = document.getElementById('recipeDetailsModal');
+    modal.style.display = 'none';
+    modal.classList.remove('active');
 } 

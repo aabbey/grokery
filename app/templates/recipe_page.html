@@ -88,11 +88,6 @@
                                 <h3>{{ recipe.title }}</h3>
                                 <p>{{ recipe.description }}</p>
                                 {% if recipe.ingredients and recipe.instructions %}
-                                <div class="recipe-details">
-                                    <button class="view-details-btn" onclick="viewRecipeDetails({{ recipe.id }})">
-                                        View Recipe Details
-                                    </button>
-                                </div>
                                 {% endif %}
                             </div>
                         </div>
@@ -147,6 +142,35 @@
     </div>
 </div>
 
-<script src="{% static 'app/js/recipes.js' %}"></script>
-<script src="{% static 'app/js/grocery-list.js' %}"></script>
+<!-- Recipe Details Modal -->
+<div id="recipeDetailsModal" class="modal" style="display: none;">
+    <div class="modal-content recipe-modal">
+        <button class="close-modal-btn">×</button>
+        <div class="recipe-modal-body">
+            <div class="recipe-modal-image">
+                <img id="modalRecipeImage" src="" alt="">
+            </div>
+            <div class="recipe-modal-details">
+                <h2 id="modalRecipeTitle"></h2>
+                <div class="recipe-modal-section">
+                    <h3>Ingredients</h3>
+                    <ul id="modalRecipeIngredients"></ul>
+                </div>
+                <div class="recipe-modal-section">
+                    <h3>Instructions</h3>
+                    <ol id="modalRecipeInstructions"></ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize recipes data from server
+    window.recipes = {{ recipes|safe }};
+    console.log('Initialized recipes data:', window.recipes);
+</script>
+
+<script src="{% static 'app/js/recipes.js' %}?v={% now 'U' %}"></script>
+<script src="{% static 'app/js/grocery-list.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

@@ -100,7 +100,7 @@ async function handleRemoveItem(itemId) {
         const response = await fetch(`/api/grocery-item/${itemId}/remove/`, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': getCsrfToken(),
+                'X-CSRFToken': window.getCsrfToken(),
             }
         });
         
@@ -154,11 +154,5 @@ async function handleShowDetails(itemId) {
     }
 }
 
-// Helper function to get CSRF token
-function getCsrfToken() {
-    const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('csrftoken='))
-        ?.split('=')[1];
-    return cookieValue;
-} 
+// Export functions needed by other modules
+window.createGroceryItemHTML = createGroceryItemHTML; 

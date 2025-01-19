@@ -26,89 +26,39 @@ function createRecipeTemplateHTML(recipe) {
 }
 
 // Initialize recipe functionality
-console.log('Recipe.js loaded');
-
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded - Starting recipe initialization');
-    
-    // Debug: Check if recipes exist in window
-    console.log('Current window.recipes:', window.recipes);
+    console.log('Recipe.js loaded');
     
     // Add event listeners for rebuild buttons
     const rebuildButton = document.querySelector('.rebuild-recipes');
-    console.log('Rebuild button found:', !!rebuildButton);
+    const buildRecipesBtn = document.getElementById('buildRecipesBtn');
     
     if (rebuildButton) {
-        rebuildButton.addEventListener('click', async (e) => {
+        rebuildButton.addEventListener('click', (e) => {
             console.log('Rebuild button clicked');
             e.preventDefault();
-            showPreferencesModal();
+            window.showPreferencesModal();
         });
     }
 
-    const buildRecipesBtn = document.getElementById('buildRecipesBtn');
-    console.log('Build recipes button found:', !!buildRecipesBtn);
-    
     if (buildRecipesBtn) {
-        buildRecipesBtn.addEventListener('click', async (e) => {
+        buildRecipesBtn.addEventListener('click', (e) => {
             console.log('Build recipes button clicked');
             e.preventDefault();
-            showPreferencesModal();
+            window.showPreferencesModal();
         });
     }
-
-    // Debug: Check for recipe items on page load
-    const recipeItems = document.querySelectorAll('.recipe-item');
-    console.log('Recipe items found on page:', recipeItems.length);
-    recipeItems.forEach((item, index) => {
-        console.log(`Recipe item ${index}:`, {
-            id: item.dataset.recipeId,
-            html: item.innerHTML.substring(0, 100) + '...' // Log first 100 chars
-        });
-    });
-
-    // Add direct click handlers to recipe items
-    recipeItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            console.log('Direct recipe item click detected:', this.dataset.recipeId);
-        });
-    });
 
     // Add click handlers for recipe items (delegation)
     document.addEventListener('click', function(e) {
-        console.log('Document click detected on:', e.target.tagName, e.target.className);
-        
         const recipeItem = e.target.closest('.recipe-item');
-        console.log('Closest recipe-item:', recipeItem?.dataset?.recipeId);
         
         if (recipeItem) {
             const recipeId = recipeItem.dataset.recipeId;
-            console.log('Processing click for recipe ID:', recipeId);
-            console.log('Recipe IDs available:', window.recipes.map(r => r.id));
-            
-            // Convert recipeId to number for comparison
             const recipe = window.recipes?.find(r => r.id === parseInt(recipeId, 10));
-            console.log('Found recipe object:', recipe);
             
             if (recipe && recipe.ingredients && recipe.instructions) {
-                console.log('Recipe has required data, showing modal');
                 showRecipeModal(recipe);
-            } else {
-                console.log('Recipe missing required data:', {
-                    hasRecipe: !!recipe,
-                    hasIngredients: recipe?.ingredients?.length > 0,
-                    hasInstructions: recipe?.instructions?.length > 0
-                });
-                if (recipe) {
-                    console.log('Recipe details:', {
-                        id: recipe.id,
-                        title: recipe.title,
-                        hasIngredients: Array.isArray(recipe.ingredients),
-                        ingredientsLength: recipe.ingredients?.length,
-                        hasInstructions: Array.isArray(recipe.instructions),
-                        instructionsLength: recipe.instructions?.length
-                    });
-                }
             }
         }
     });
@@ -116,92 +66,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close modal on escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            console.log('Escape key pressed');
             closeRecipeModal();
         }
     });
 });
-
-// Helper function to setup plus buttons
-function setupPlusButtons(container) {
-    const plusButtons = container.querySelectorAll('.plus-btn');
-    
-    plusButtons.forEach(btn => {
-        const targetId = btn.getAttribute('data-target');
-        const lineContainer = document.getElementById(targetId);
-        if (!lineContainer) return;
-
-        // Initialize state
-        btn.setAttribute('data-state', '0');
-        
-        btn.addEventListener('click', () => {
-            const lines = lineContainer.querySelectorAll('.line');
-            const activeLines = lineContainer.querySelectorAll('.line.active');
-    
-            // If all lines are active, reset them
-            if (activeLines.length === lines.length) {
-                lines.forEach(line => line.classList.remove('active'));
-                btn.setAttribute('data-state', '0');
-                return;
-            }
-    
-            // Otherwise, activate the next line
-            const nextIndex = activeLines.length;
-            if (nextIndex < lines.length) {
-                lines[nextIndex].classList.add('active');
-                btn.setAttribute('data-state', (nextIndex + 1).toString());
-            }
-        });
-    });
-}
-
-// Helper function to show preferences modal
-async function showPreferencesModal() {
-    try {
-        // Fetch the preferences modal content
-        const response = await fetch('/preferences-modal/');
-        const modalHtml = await response.text();
-        
-        // Remove any existing modal
-        const existingModal = document.querySelector('.preferences-modal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // Insert modal into the page
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Get modal elements
-        const modal = document.querySelector('.preferences-modal');
-        const closeBtn = modal.querySelector('.close-modal-btn');
-        const rebuildBtn = modal.querySelector('#rebuildWithPreferences');
-        
-        // Setup close button
-        closeBtn.addEventListener('click', () => {
-            modal.remove();
-        });
-        
-        // Setup click outside to close
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-        
-        // Setup rebuild button
-        rebuildBtn.addEventListener('click', () => {
-            modal.remove();
-            // Start recipe generation when rebuild button is clicked
-            setupRecipeStream();
-        });
-        
-        // Setup plus buttons in modal
-        setupPlusButtons(modal);
-        
-    } catch (error) {
-        console.error('Error loading preferences modal:', error);
-    }
-}
 
 function setupRecipeStream() {
     console.log('Setting up recipe generation stream');
@@ -210,7 +78,7 @@ function setupRecipeStream() {
     // Store recipes globally for click handling
     window.recipes = [];
     
-    // Show loading states
+    // Get DOM elements
     const recipesContent = document.getElementById('recipesContent');
     const recipesLoading = document.getElementById('recipesLoading');
     const recipesEmpty = document.getElementById('recipesEmpty');
@@ -218,6 +86,7 @@ function setupRecipeStream() {
     const groceryListLoading = document.getElementById('groceryListLoading');
     const groceryListEmpty = document.getElementById('groceryListEmpty');
     
+    // Show loading states
     if (recipesContent) recipesContent.style.display = 'none';
     if (recipesLoading) recipesLoading.style.display = 'block';
     if (recipesEmpty) recipesEmpty.style.display = 'none';
@@ -232,55 +101,15 @@ function setupRecipeStream() {
 
             switch (data.type) {
                 case 'templates':
-                    console.log('Received recipe templates:', data.recipes);
-                    // Store recipes globally
-                    window.recipes = data.recipes;
-                    
-                    // Create initial recipe containers with loading states
-                    if (recipesContent) {
-                        recipesContent.style.display = 'block';
-                        recipesContent.innerHTML = data.recipes.map(recipe => `
-                            <div class="recipe-item" data-recipe-id="${recipe.id}">
-                                <div class="recipe-image">
-                                    <div class="loading-spinner"></div>
-                                </div>
-                                <div class="recipe-content">
-                                    <h3>${recipe.title}</h3>
-                                    <p>${recipe.description}</p>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
-                    if (recipesLoading) recipesLoading.style.display = 'none';
+                    handleTemplatesUpdate(data, recipesContent, recipesLoading);
                     break;
                     
                 case 'updates':
-                    console.log('Received recipe updates:', data.recipes);
-                    // Update global recipes and UI
-                    data.recipes.forEach(recipe => {
-                        const index = window.recipes.findIndex(r => r.id === recipe.id);
-                        if (index !== -1) {
-                            window.recipes[index] = recipe;
-                            updateRecipe(recipe);
-                        }
-                    });
+                    handleRecipeUpdates(data);
                     break;
                     
                 case 'grocery_list':
-                    console.log('Recipe generation complete');
-                    // Update grocery list
-                    if (groceryListContent && data.grocery_list) {
-                        groceryListContent.style.display = 'block';
-                        groceryListContent.innerHTML = data.grocery_list
-                            .map(item => createGroceryItemHTML(item))
-                            .join('');
-                    }
-                    if (groceryListLoading) groceryListLoading.style.display = 'none';
-                    if (groceryListEmpty && (!data.grocery_list || data.grocery_list.length === 0)) {
-                        groceryListEmpty.style.display = 'block';
-                    }
-                    
-                    // Close the event source
+                    handleGroceryListUpdate(data, groceryListContent, groceryListLoading, groceryListEmpty);
                     eventSource.close();
                     break;
             }
@@ -297,13 +126,48 @@ function setupRecipeStream() {
     };
 }
 
+function handleTemplatesUpdate(data, recipesContent, recipesLoading) {
+    console.log('Received recipe templates:', data.recipes);
+    window.recipes = data.recipes;
+    
+    if (recipesContent) {
+        recipesContent.style.display = 'block';
+        recipesContent.innerHTML = data.recipes.map(recipe => createRecipeTemplateHTML(recipe)).join('');
+    }
+    if (recipesLoading) recipesLoading.style.display = 'none';
+}
+
+function handleRecipeUpdates(data) {
+    console.log('Received recipe updates:', data.recipes);
+    data.recipes.forEach(recipe => {
+        const index = window.recipes.findIndex(r => r.id === recipe.id);
+        if (index !== -1) {
+            window.recipes[index] = recipe;
+            updateRecipe(recipe);
+        }
+    });
+}
+
+function handleGroceryListUpdate(data, groceryListContent, groceryListLoading, groceryListEmpty) {
+    console.log('Recipe generation complete');
+    if (groceryListContent && data.grocery_list) {
+        groceryListContent.style.display = 'block';
+        groceryListContent.innerHTML = data.grocery_list
+            .map(item => window.createGroceryItemHTML(item))
+            .join('');
+    }
+    if (groceryListLoading) groceryListLoading.style.display = 'none';
+    if (groceryListEmpty && (!data.grocery_list || data.grocery_list.length === 0)) {
+        groceryListEmpty.style.display = 'block';
+    }
+}
+
 function handleStreamError(error) {
     console.error('Handling stream error:', error);
     const recipesContent = document.getElementById('recipesContent');
     const recipesLoading = document.getElementById('recipesLoading');
     const recipesEmpty = document.getElementById('recipesEmpty');
     
-    // Hide loading states
     if (recipesLoading) recipesLoading.style.display = 'none';
     if (recipesEmpty) recipesEmpty.style.display = 'none';
     
@@ -327,41 +191,16 @@ function updateRecipe(recipe) {
     }
 }
 
-function createGroceryItemHTML(item) {
-    return `
-        <li class="grocery-item">
-            <span>${item.quantity} ${item.unit} ${item.name}</span>
-            <button class="item-menu-btn" data-item-id="${item.id || '0'}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1" />
-                    <circle cx="12" cy="5" r="1" />
-                    <circle cx="12" cy="19" r="1" />
-                </svg>
-            </button>
-        </li>
-    `;
-}
-
 // Recipe modal functionality
 function showRecipeModal(recipe) {
     console.log('Showing modal for recipe:', recipe.title);
     
     const modal = document.getElementById('recipeDetailsModal');
-    console.log('Modal element found:', !!modal);
-    
     const modalImage = document.getElementById('modalRecipeImage');
     const modalTitle = document.getElementById('modalRecipeTitle');
     const modalIngredients = document.getElementById('modalRecipeIngredients');
     const modalInstructions = document.getElementById('modalRecipeInstructions');
     const closeBtn = modal.querySelector('.close-modal-btn');
-
-    console.log('Modal elements found:', {
-        image: !!modalImage,
-        title: !!modalTitle,
-        ingredients: !!modalIngredients,
-        instructions: !!modalInstructions,
-        closeBtn: !!closeBtn
-    });
 
     // Set image and title
     if (recipe.image) {
@@ -373,44 +212,33 @@ function showRecipeModal(recipe) {
     }
     modalTitle.textContent = recipe.title;
 
-    // Set ingredients
-    console.log('Setting ingredients:', recipe.ingredients);
+    // Set ingredients and instructions
     modalIngredients.innerHTML = recipe.ingredients
         .map(ingredient => `<li>${ingredient}</li>`)
         .join('');
-
-    // Set instructions
-    console.log('Setting instructions:', recipe.instructions);
     modalInstructions.innerHTML = recipe.instructions
         .map(instruction => `<li>${instruction}</li>`)
         .join('');
 
-    // Show modal with flex display and add active class
+    // Show modal
     modal.style.display = 'flex';
     modal.classList.add('active');
     
-    // Setup close button click handler
-    closeBtn.addEventListener('click', () => {
-        console.log('Close button clicked');
-        closeRecipeModal();
-    });
-
-    // Setup click outside to close
+    // Setup close handlers
+    closeBtn.addEventListener('click', closeRecipeModal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            console.log('Clicked outside modal');
             closeRecipeModal();
         }
     });
-    
-    console.log('Modal display style:', modal.style.display);
-    console.log('Modal classes:', modal.className);
 }
 
-// Function to close the recipe modal
 function closeRecipeModal() {
     console.log('Closing recipe modal');
     const modal = document.getElementById('recipeDetailsModal');
     modal.style.display = 'none';
     modal.classList.remove('active');
-} 
+}
+
+// Export functions needed by other modules
+window.setupRecipeStream = setupRecipeStream; 

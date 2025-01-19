@@ -190,7 +190,7 @@ async function handleShowDetails(itemId) {
     }
 }
 
-// Helper function to get CSRF token
+// Shared utility functions
 function getCsrfToken() {
     const cookieValue = document.cookie
         .split('; ')
@@ -199,7 +199,7 @@ function getCsrfToken() {
     return cookieValue;
 }
 
-// Helper function to setup plus buttons
+// Plus button functionality
 function setupPlusButtons(container) {
     const plusButtons = container.querySelectorAll('.plus-btn');
     
@@ -211,14 +211,18 @@ function setupPlusButtons(container) {
         // Initialize state
         btn.setAttribute('data-state', '0');
         
-        btn.addEventListener('click', () => {
+        // Remove any existing click listeners
+        btn.replaceWith(btn.cloneNode(true));
+        const newBtn = document.querySelector(`[data-target="${targetId}"]`);
+        
+        newBtn.addEventListener('click', () => {
             const lines = lineContainer.querySelectorAll('.line');
             const activeLines = lineContainer.querySelectorAll('.line.active');
     
             // If all lines are active, reset them
             if (activeLines.length === lines.length) {
                 lines.forEach(line => line.classList.remove('active'));
-                btn.setAttribute('data-state', '0');
+                newBtn.setAttribute('data-state', '0');
                 return;
             }
     
@@ -226,18 +230,24 @@ function setupPlusButtons(container) {
             const nextIndex = activeLines.length;
             if (nextIndex < lines.length) {
                 lines[nextIndex].classList.add('active');
-                btn.setAttribute('data-state', (nextIndex + 1).toString());
+                newBtn.setAttribute('data-state', (nextIndex + 1).toString());
             }
         });
     });
 }
 
-// Helper function to show preferences modal
+// Preferences modal functionality
 async function showPreferencesModal() {
     try {
         // Fetch the preferences modal content
         const response = await fetch('/preferences-modal/');
         const modalHtml = await response.text();
+        
+        // Remove any existing modal
+        const existingModal = document.querySelector('.preferences-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
         
         // Insert modal into the page
         document.body.insertAdjacentHTML('beforeend', modalHtml);
@@ -263,7 +273,7 @@ async function showPreferencesModal() {
         rebuildBtn.addEventListener('click', () => {
             modal.remove();
             // Start recipe generation when rebuild button is clicked
-            setupRecipeStream();
+            window.setupRecipeStream();
         });
         
         // Setup plus buttons in modal
@@ -273,4 +283,9 @@ async function showPreferencesModal() {
         console.error('Error loading preferences modal:', error);
     }
 }
+
+// Export shared functions
+window.getCsrfToken = getCsrfToken;
+window.setupPlusButtons = setupPlusButtons;
+window.showPreferencesModal = showPreferencesModal;
   
